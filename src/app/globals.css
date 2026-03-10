@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f4f4f5;
+  --foreground: #09090b;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);
+}
+
+/* react-datepicker 定制样式，融入移动端极简风格 */
+.react-datepicker-orchestra {
+  @apply rounded-2xl border border-zinc-200 bg-white shadow-md text-xs;
+}
+
+.react-datepicker-orchestra .react-datepicker__header {
+  @apply border-b border-zinc-200 bg-zinc-50 py-2;
+}
+
+.react-datepicker-orchestra .react-datepicker__current-month {
+  @apply text-xs font-medium text-zinc-900;
+}
+
+.react-datepicker-orchestra .react-datepicker__day-name,
+.react-datepicker-orchestra .react-datepicker__day {
+  @apply w-7 text-center text-[11px];
+}
+
+.react-datepicker-orchestra .react-datepicker__day {
+  @apply rounded-full text-zinc-700 hover:bg-zinc-100;
+}
+
+.react-datepicker-orchestra
+  .react-datepicker__day--selected.react-datepicker__day--selected {
+  @apply bg-zinc-900 text-white hover:bg-zinc-900;
+}
+
+.react-datepicker-orchestra .react-datepicker__day--today {
+  @apply font-semibold text-zinc-900;
+}
+
+.react-datepicker-orchestra .react-datepicker__time-container {
+  @apply border-l border-zinc-200;
+}
+
+.react-datepicker-orchestra .react-datepicker__time-list-item {
+  @apply text-[11px];
+}
+
+.react-datepicker-orchestra
+  .react-datepicker__time-list-item--selected.react-datepicker__time-list-item--selected {
+  @apply bg-zinc-900 text-white;
+}
+
