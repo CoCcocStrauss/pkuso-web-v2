@@ -1,14 +1,13 @@
 import type { NextConfig } from "next";
 
+// Next 16 类型定义中未包含 eslint，但构建仍支持；用 Object.assign 避免 TS2353
 const nextConfig: NextConfig = {
-  // 忽略 ESLint 警告
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  // 忽略 TypeScript 类型报错，强行打包
   typescript: {
     ignoreBuildErrors: true,
   },
 };
+Object.assign(nextConfig, {
+  eslint: { ignoreDuringBuilds: true },
+});
 
 export default nextConfig;

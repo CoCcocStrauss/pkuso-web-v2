@@ -85,7 +85,21 @@ export default function CommunityPage() {
       console.warn("[Community] 加载公告失败：", error.message);
       setPosts([]);
     } else {
-      setPosts((data as PostRow[]) ?? []);
+      // Supabase 嵌套 users 可能返回单对象或数组，统一取第一项以符合 PostRow
+      const raw = (data ?? []) as Array<
+        PostRow & { users?: PostRow["users"] | Array<{ name: string; section: string }> }
+      >;
+      const normalized: PostRow[] = raw.map((row) => {
+        const u = row.users;
+        const users =
+          Array.isArray(u) && u.length > 0
+            ? { name: u[0].name, section: u[0].section }
+            : u && !Array.isArray(u)
+              ? u
+              : null;
+        return { ...row, users };
+      });
+      setPosts(normalized);
     }
     setLoading(false);
   }, []);

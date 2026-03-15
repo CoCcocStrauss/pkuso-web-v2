@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Calendar, MessageSquare, User } from "lucide-react";
+import { Calendar, MessageSquare, User, UsersRound } from "lucide-react";
 
 const tabs = [
   { href: "/", label: "日程", icon: Calendar },
   { href: "/community", label: "社区", icon: MessageSquare },
+  { href: "/members", label: "成员", icon: UsersRound },
   { href: "/profile", label: "我的", icon: User },
 ];
 
@@ -20,8 +21,9 @@ export function TabBar() {
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const active =
-              pathname === tab.href ||
-              (tab.href === "/" && pathname === "/");
+              tab.href === "/"
+                ? pathname === "/"
+                : pathname === tab.href || pathname.startsWith(tab.href + "/");
 
             return (
               <Link
