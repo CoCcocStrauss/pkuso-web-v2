@@ -110,12 +110,12 @@ export default function MembersPage() {
     setRehearsalsLoading(true);
     const { data, error } = await supabase
       .from("rehearsals")
-      .select("id, title, date, time")
-      .order("date", { ascending: true })
-      .order("time", { ascending: true });
+      .select("id, title, date")
+      .order("date", { ascending: true });
     setRehearsalsLoading(false);
     if (error || !data) {
       setRehearsalList([]);
+      alert("加载排练日程失败：" + error?.message);
       return;
     }
     const list = (data as RehearsalRow[]).filter((r) => {

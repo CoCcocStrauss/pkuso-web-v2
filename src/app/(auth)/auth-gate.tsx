@@ -110,20 +110,20 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       }
 
       setProfileErrorMsg(null);
-      setProfileStatus((data as any)?.status ?? null);
-      setProfileRole((data as any)?.role ?? null);
-      setProfileName((data as any)?.full_name ?? null);
-      setProfileInstrument((data as any)?.instrument ?? null);
-      setProfileEmail((data as any)?.email ?? null);
+      setProfileStatus(data?.status ?? null);
+      setProfileRole(data?.role ?? null);
+      setProfileName(data?.full_name ?? null);
+      setProfileInstrument(data?.instrument ?? null);
+      setProfileEmail(data?.email ?? null);
 
       // 将 profile 写回全局状态，兼容现有页面使用 useUser()
       login({
         id: sessionUserId,
-        name: ((data as any)?.full_name as string) ?? "未命名用户",
-        role: (((data as any)?.role as any) ?? "member") as any,
-        section: ((data as any)?.instrument as string) ?? "",
-        status: ((data as any)?.status as string) ?? undefined,
-        email: ((data as any)?.email as string) ?? undefined,
+        name: (data?.full_name as string) ?? "未命名用户",
+        role: ((data?.role as any) ?? "member") as any,
+        section: (data?.instrument as string) ?? "",
+        status: (data?.status as string) ?? undefined,
+        email: (data?.email as string) ?? undefined,
       });
 
       setProfileLoading(false);

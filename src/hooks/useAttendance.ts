@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import type { AttendanceStatusType, ProfileRow, RehearsalRow } from "@/lib/types";
 
@@ -23,44 +23,54 @@ export function useAttendance(userId?: string, isAdmin?: boolean) {
   const [statusByUserId, setStatusByUserId] = useState<Record<string, AttendanceStatusType>>({});
   const [attendanceSaving, setAttendanceSaving] = useState(false);
 
-  /**
-   * 获取当前用户的考勤记录
-   */
-  const fetchMyAttendances = useCallback(async () => {
-    if (!userId || isAdmin) {
-      setMyAttendanceByRehearsal({});
-      return;
-    }
-    setMyAttendanceLoading(true);
-    const { data, error } = await supabase
-      .from("attendances")
-      .select("rehearsal_id, status")
-      .eq("user_id", userId);
-    setMyAttendanceLoading(false);
-
-    if (error) {
-      console.warn("[Home] 加载我的考勤失败：", error.message);
-      setMyAttendanceByRehearsal({});
-      return;
-    }
-
-    const map: Record<string, string> = {};
-    for (const row of (data ?? []) as {
-      rehearsal_id: string | number;
-      status: string;
-    }[]) {
-      map[row.rehearsal_id] = row.status;
-    }
-    setMyAttendanceByRehearsal(map);
-  }, [userId, isAdmin]);
-
+  // 获取当前用户的考勤记录（直接写在 effect 中，避免额外的 useCallback 依赖）
   useEffect(() => {
-    void fetchMyAttendances();
-  }, [fetchMyAttendances]);
+    let cancelled = false;
+
+    const loadMyAttendances = async () => {
+      if (!userId || isAdmin) {
+        if (!cancelled) setMyAttendanceByRehearsal({});
+        return;
+      }
+
+      setMyAttendanceLoading(true);
+      const { data, error } = await supabase
+        .from("attendances")
+        .select("rehearsal_id, status")
+        .eq("user_id", userId);
+
+      if (cancelled) return;
+
+      setMyAttendanceLoading(false);
+
+      if (error) {
+        console.warn("[Home] 加载我的考勤失败：", error.message);
+        setMyAttendanceByRehearsal({});
+        return;
+      }
+
+      const map: Record<string, string> = {};
+      for (const row of (data ?? []) as {
+        rehearsal_id: string | number;
+        status: string;
+      }[]) {
+        map[row.rehearsal_id] = row.status;
+      }
+      setMyAttendanceByRehearsal(map);
+    };
+
+    void loadMyAttendances();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, isAdmin]);
 
   // 打开管理员面板时：正式团员 + 该场 attendances；无记录默认 absent
   useEffect(() => {
     if (!attendanceModalRehearsal || !isAdmin) return;
+
+    let cancelled = false;
     const rid = attendanceModalRehearsal.id;
 
     const load = async () => {
@@ -76,17 +86,21 @@ export function useAttendance(userId?: string, isAdmin?: boolean) {
           .eq("rehearsal_id", rid),
       ]);
 
+      if (cancelled) return;
+
       setAttendanceLoading(false);
 
       if (profilesRes.error) {
         console.warn("[Home] 加载团员失败：", profilesRes.error.message);
-        setAttendanceMembers([]);
-        setStatusByUserId({});
+        if (!cancelled) {
+          setAttendanceMembers([]);
+          setStatusByUserId({});
+        }
         return;
       }
 
       const members = (profilesRes.data as ProfileRow[]) ?? [];
-      setAttendanceMembers(members);
+      if (!cancelled) setAttendanceMembers(members);
 
       const existing: Record<string, AttendanceStatusType> = {};
       if (!attendRes.error && attendRes.data) {
@@ -105,10 +119,14 @@ export function useAttendance(userId?: string, isAdmin?: boolean) {
         // 无记录视为未自助签到 → 默认缺席，由管理员补录
         initial[m.id] = existing[m.id] ?? "absent";
       }
-      setStatusByUserId(initial);
+      if (!cancelled) setStatusByUserId(initial);
     };
 
     void load();
+
+    return () => {
+      cancelled = true;
+    };
   }, [attendanceModalRehearsal, isAdmin]);
 
   /**
