@@ -13,7 +13,7 @@ import { REHEARSAL_TYPE_FULL, REHEARSAL_TYPE_SECTION } from "@/lib/constants";
 import type { RehearsalRow } from "@/lib/types";
 
 export default function Home() {
-  const { user } = useUser();
+  const { user } = useUser(); // 只解构需要的 user
   const role = user?.role;
   const isAdmin = role === "admin";
 
@@ -54,47 +54,6 @@ export default function Home() {
 
   const handlePublishSuccess = () => {
     void fetchRehearsals();
-  };
-
-  /** 团员卡片：考勤状态按钮。compact 时与社区卡片右侧小方框一致 */
-  const renderMemberAttendanceButton = (r: RehearsalRow, compact?: boolean) => {
-    if (!user?.id || isAdmin) return null;
-    const key = r.id;
-    const status = myAttendanceByRehearsal[key];
-    const compactClass =
-      "inline-block rounded border border-zinc-200 bg-white px-2 py-0.5 text-[10px] font-medium text-zinc-700";
-
-    if (status === "present") {
-      return (
-        <button
-          type="button"
-          disabled
-          className={compact ? compactClass + " cursor-not-allowed text-zinc-500" : "w-full cursor-not-allowed rounded-full border border-zinc-200 bg-zinc-100 py-2 text-sm font-medium text-zinc-500"}
-        >
-          ✅ 已签到
-        </button>
-      );
-    }
-    if (status === "leave") {
-      return (
-        <button
-          type="button"
-          disabled
-          className={compact ? compactClass + " cursor-not-allowed text-zinc-500" : "w-full cursor-not-allowed rounded-full border border-zinc-200 bg-zinc-100 py-2 text-sm font-medium text-zinc-500"}
-        >
-          ⏸️ 已请假
-        </button>
-      );
-    }
-    return (
-      <button
-        type="button"
-        onClick={() => void handleMemberSignIn(r)}
-        className={compact ? compactClass + " hover:bg-zinc-50" : "w-full rounded-full bg-zinc-900 py-2 text-sm font-medium text-white shadow-sm hover:bg-zinc-800"}
-      >
-        📍 点击签到
-      </button>
-    );
   };
 
   return (
@@ -170,21 +129,24 @@ export default function Home() {
       <RehearsalSection
         displayedRehearsals={displayedRehearsals}
         rehearsalsLoading={rehearsalsLoading}
-        scheduleTab={scheduleTab}
         isAdmin={isAdmin}
-        renderMemberAttendanceButton={renderMemberAttendanceButton}
-        setAttendanceModalRehearsal={setAttendanceModalRehearsal}
+        userId={user?.id}
+        myAttendanceByRehearsal={myAttendanceByRehearsal}
+        onSignIn={handleMemberSignIn}
+        onOpenAttendanceModal={setAttendanceModalRehearsal}
       />
 
       <AttendanceModal
-        attendanceModalRehearsal={attendanceModalRehearsal}
-        setAttendanceModalRehearsal={setAttendanceModalRehearsal}
-        attendanceLoading={attendanceLoading}
-        attendanceMembers={attendanceMembers}
+        rehearsal={attendanceModalRehearsal}
+        loading={attendanceLoading}
+        members={attendanceMembers}
         statusByUserId={statusByUserId}
-        setStatusByUserId={setStatusByUserId}
-        attendanceSaving={attendanceSaving}
-        handleSaveAttendance={handleSaveAttendance}
+        onStatusChange={(userId, status) =>
+          setStatusByUserId((prev) => ({ ...prev, [userId]: status }))
+        }
+        saving={attendanceSaving}
+        onSave={handleSaveAttendance}
+        onClose={() => setAttendanceModalRehearsal(null)}
       />
     </div>
   );

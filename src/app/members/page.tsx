@@ -2,28 +2,8 @@
 
 import React from "react";
 import { supabase } from "@/lib/supabase";
-
+import { INSTRUMENTS, OTHER_GROUP } from "@/lib/constants";
 /** 声部展示顺序：严格按此顺序分组，未在列表中的归入「其他」 */
-const INSTRUMENT_ORDER = [
-  "第一小提琴",
-  "第二小提琴",
-  "中提琴",
-  "大提琴",
-  "低音提琴",
-  "长笛",
-  "双簧管",
-  "单簧管",
-  "大管",
-  "圆号",
-  "小号",
-  "长号",
-  "大号",
-  "打击乐",
-  "键盘",
-  "竖琴",
-] as const;
-
-const OTHER_GROUP = "其他";
 
 type ProfileRow = {
   id: string;
@@ -47,7 +27,7 @@ type RehearsalRow = {
 function instrumentGroupKey(instrument: string | null): string {
   if (!instrument) return OTHER_GROUP;
   const trimmed = instrument.trim();
-  if (INSTRUMENT_ORDER.includes(trimmed as (typeof INSTRUMENT_ORDER)[number])) {
+  if (INSTRUMENTS.includes(trimmed as (typeof INSTRUMENTS)[number])) {
     return trimmed;
   }
   return OTHER_GROUP;
@@ -112,7 +92,7 @@ export default function MembersPage() {
       );
     }
     const ordered: { group: string; users: ProfileRow[] }[] = [];
-    for (const key of INSTRUMENT_ORDER) {
+    for (const key of INSTRUMENTS) {
       const users = map.get(key);
       if (users && users.length > 0) {
         ordered.push({ group: key, users });

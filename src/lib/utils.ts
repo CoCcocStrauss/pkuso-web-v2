@@ -94,7 +94,7 @@ export function formatDateTitle(date: string | null, timeRange: string): string 
  */
 export function isRehearsalEnded(
   date: string | null,
-  endTime: string | null,
+  endTime: string | null | undefined,
   startTimeFallback?: string | null,
 ): boolean {
   if (!date || date.length < 10) return true;
