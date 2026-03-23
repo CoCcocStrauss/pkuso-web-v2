@@ -4,25 +4,10 @@ import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { Console } from "console";
+import { INSTRUMENTS } from "@/lib/constants";
 
-const INSTRUMENT_OPTIONS = [
-  "第一小提琴",
-  "第二小提琴",
-  "中提琴",
-  "大提琴",
-  "低音提琴",
-  "长笛",
-  "双簧管",
-  "单簧管",
-  "大管",
-  "圆号",
-  "小号",
-  "长号",
-  "大号",
-  "打击乐",
-  "键盘",
-  "竖琴",
-] as const;
+// TODO：其他乐器类型界定
 
 export default function SignupPage() {
   const router = useRouter();
@@ -30,19 +15,18 @@ export default function SignupPage() {
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [fullName, setFullName] = React.useState("");
-  const [instrument, setInstrument] = React.useState<
-    (typeof INSTRUMENT_OPTIONS)[number] | ""
-  >("");
+  const [instrument, setInstrument] = React.useState< (typeof INSTRUMENTS)[number] | "">("");
   const [college, setCollege] = React.useState("");
   const [joinDate, setJoinDate] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
   const [errorMsg, setErrorMsg] = React.useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (submitting) return;
     setErrorMsg("");
 
+    // TODO：从数据库读取邀请码；对于管理员添加邀请码管理功能
     const normalizedCode = invitationCode.trim().toUpperCase();
     if (normalizedCode !== "PKUSO2026") {
       alert("邀请码错误，请联系乐团管理员获取");
@@ -61,6 +45,8 @@ export default function SignupPage() {
       return;
     }
 
+    // TODO：没有密码强度验证等功能，后续完善
+
     setSubmitting(true);
     const { data: signUpData, error: signUpError } =
       await supabase.auth.signUp({
@@ -75,6 +61,7 @@ export default function SignupPage() {
     }
 
     const userId = signUpData.user?.id;
+    console.log(signUpData);
     if (!userId) {
       setSubmitting(false);
       setErrorMsg("注册成功但未获取到用户信息，请稍后重试。");
@@ -88,6 +75,8 @@ export default function SignupPage() {
       instrument,
       college: college.trim(),
       join_date: joinDate.trim(),
+      status: "pending",
+      role: "member"
     });
 
     setSubmitting(false);
@@ -194,7 +183,7 @@ export default function SignupPage() {
                 <option value="" disabled>
                   请选择声部
                 </option>
-                {INSTRUMENT_OPTIONS.map((opt) => (
+                {INSTRUMENTS.map((opt) => (
                   <option key={opt} value={opt}>
                     {opt}
                   </option>
