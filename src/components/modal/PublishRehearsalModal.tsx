@@ -16,7 +16,7 @@ interface PublishRehearsalModalProps {
 /**
  * 表单状态类型
  */
-type FormState = {
+type RehearsalFormState = {
   /** 排练类型 */
   rehearsalType: "全团合排" | "声部分排";
   /** 排练日期 */
@@ -40,7 +40,7 @@ type FormState = {
  */
 export function PublishRehearsalModal({ open, onClose, onSuccess }: PublishRehearsalModalProps) {
   const [publishing, setPublishing] = React.useState(false);
-  const [form, setForm] = React.useState<FormState>({
+  const [form, setForm] = React.useState<RehearsalFormState>({
     rehearsalType: "全团合排",
     date: "",
     time: "",

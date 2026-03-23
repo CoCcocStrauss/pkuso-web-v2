@@ -4,22 +4,11 @@ import React from "react";
 import imageCompression from "browser-image-compression";
 import { useUser } from "@/context/UserContext";
 import { supabase } from "@/lib/supabase";
+import Toggle from "@/components/ui/Toggle";
+import Modal from "@/components/ui/Modal";
+import { PostRow } from "@/lib/types";
 
 type PostType = "ensemble" | "gathering";
-
-type PostRow = {
-  id: string;
-  title: string;
-  type: PostType;
-  content: string;
-  image_url: string | null;
-  author_id: string;
-  created_at: string;
-  contact_info: string | null;
-  current_sections: string | null;
-  missing_sections: string | null;
-  users?: { name: string; section: string } | null;
-};
 
 type FormState = {
   title: string;
@@ -304,7 +293,14 @@ export default function CommunityPage() {
           )}
         </div>
         <div className="mt-2">
-          <ViewToggle value={view} onChange={(v) => setView(v)} />
+          <Toggle
+            options={[
+              { value: "ensemble", label: TYPE_LABEL.ensemble },
+              { value: "gathering", label: TYPE_LABEL.gathering },
+            ]}
+            value={view}
+            onChange={(v) => setView(v as PostType)}
+          />
         </div>
       </header>
 
@@ -407,33 +403,6 @@ export default function CommunityPage() {
   );
 }
 
-function ViewToggle({
-  value,
-  onChange,
-}: {
-  value: PostType;
-  onChange: (v: PostType) => void;
-}) {
-  return (
-    <div className="inline-flex rounded-full bg-zinc-100 p-1 text-xs">
-      {(["ensemble", "gathering"] as PostType[]).map((t) => (
-        <button
-          key={t}
-          type="button"
-          onClick={() => onChange(t)}
-          className={`min-w-[64px] rounded-full px-3 py-1 text-center transition-colors ${
-            value === t
-              ? "bg-zinc-900 text-white shadow-sm"
-              : "text-zinc-600 hover:text-zinc-900"
-          }`}
-        >
-          {TYPE_LABEL[t]}
-        </button>
-      ))}
-    </div>
-  );
-}
-
 function DetailModal({
   post,
   onClose,
@@ -458,78 +427,65 @@ function DetailModal({
   };
 
   return (
-    <div className="fixed inset-0 z-30 flex items-end justify-center bg-black/40 px-4 pb-safe">
-      <button
-        aria-label="关闭详情"
-        className="absolute inset-0 h-full w-full"
-        onClick={onClose}
-      />
-      <div className="relative w-full max-w-md max-h-[85vh] overflow-hidden rounded-3xl bg-white p-4 shadow-xl flex flex-col">
-        <div className="mb-2 flex items-center justify-between flex-shrink-0">
-          <h2 className="text-base font-semibold text-zinc-900">{post.title}</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-full bg-zinc-100 px-3 py-1 text-[11px] text-zinc-600"
-          >
-            关闭
-          </button>
+    <Modal
+      title={post.title}
+      onClose={onClose}
+      className="max-h-[85vh] overflow-hidden flex flex-col"
+    >
+      <p className="text-[11px] text-zinc-500 flex-shrink-0">
+        {TYPE_LABEL[post.type]} · {author}
+      </p>
+      {(showCurrent || showMissing) && (
+        <div className="mt-2 flex flex-wrap gap-1.5 flex-shrink-0">
+          {showCurrent && (
+            <span className="inline-flex rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-600">
+              已有：{post.current_sections!.trim()}
+            </span>
+          )}
+          {showMissing && (
+            <span className="inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-700">
+              缺：{post.missing_sections!.trim()}
+            </span>
+          )}
         </div>
-        <p className="text-[11px] text-zinc-500 flex-shrink-0">
-          {TYPE_LABEL[post.type]} · {author}
-        </p>
-        {(showCurrent || showMissing) && (
-          <div className="mt-2 flex flex-wrap gap-1.5 flex-shrink-0">
-            {showCurrent && (
-              <span className="inline-flex rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-600">
-                已有：{post.current_sections!.trim()}
-              </span>
-            )}
-            {showMissing && (
-              <span className="inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-700">
-                缺：{post.missing_sections!.trim()}
-              </span>
-            )}
+      )}
+      <div className="mt-2 overflow-y-auto flex-1 space-y-3 text-xs text-zinc-700">
+        {post.content != null && post.content.trim() !== "" && (
+          <p className="whitespace-pre-line leading-relaxed">{post.content}</p>
+        )}
+        {post.contact_info && (
+          <div className="rounded-2xl bg-zinc-50 p-3 flex items-center justify-between gap-2">
+            <div>
+              <p className="text-[11px] font-medium text-zinc-500">联系方式</p>
+              <p className="text-xs text-zinc-800">{post.contact_info}</p>
+            </div>
+            <button
+              type="button"
+              onClick={copyContact}
+              className="relative z-10 cursor-pointer rounded-full bg-zinc-900 px-3 py-1.5 text-[11px] font-medium text-white shrink-0"
+            >
+              一键复制
+            </button>
           </div>
         )}
-        <div className="mt-2 overflow-y-auto flex-1 space-y-3 text-xs text-zinc-700">
-          {post.content != null && post.content.trim() !== "" && (
-            <p className="whitespace-pre-line leading-relaxed">{post.content}</p>
-          )}
-          {post.contact_info && (
-            <div className="rounded-2xl bg-zinc-50 p-3 flex items-center justify-between gap-2">
-              <div>
-                <p className="text-[11px] font-medium text-zinc-500">联系方式</p>
-                <p className="text-xs text-zinc-800">{post.contact_info}</p>
-              </div>
-              <button
-                type="button"
-                onClick={copyContact}
-                className="relative z-10 cursor-pointer rounded-full bg-zinc-900 px-3 py-1.5 text-[11px] font-medium text-white shrink-0"
-              >
-                一键复制
-              </button>
-            </div>
-          )}
-          {post.image_url && (
-            <div className="space-y-2">
-              <img
-                src={post.image_url}
-                alt="二维码或配图"
-                className="rounded-2xl border border-zinc-200 max-w-full h-auto max-h-64 object-contain"
-              />
-              <button
-                type="button"
-                onClick={() => onSaveQr(post.image_url!)}
-                className="rounded-full bg-zinc-100 px-3 py-1.5 text-[11px] font-medium text-zinc-700 hover:bg-zinc-200"
-              >
-                保存二维码
-              </button>
-            </div>
-          )}
-        </div>
+        {post.image_url && (
+          <div className="space-y-2">
+            <img
+              src={post.image_url}
+              alt="二维码或配图"
+              className="rounded-2xl border border-zinc-200 max-w-full h-auto max-h-64 object-contain"
+            />
+            <button
+              type="button"
+              onClick={() => onSaveQr(post.image_url!)}
+              className="rounded-full bg-zinc-100 px-3 py-1.5 text-[11px] font-medium text-zinc-700 hover:bg-zinc-200"
+            >
+              保存二维码
+            </button>
+          </div>
+        )}
       </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -553,30 +509,13 @@ function PublishModal({
   onSubmit: (e: React.FormEvent) => void;
 }) {
   return (
-    <div className="fixed inset-0 z-30 flex items-end justify-center bg-black/40 px-4 pb-safe">
-      <button
-        aria-label="关闭"
-        className="absolute inset-0 h-full w-full"
-        onClick={onClose}
-        disabled={submitting}
-      />
-      <form
-        onSubmit={onSubmit}
-        className="relative w-full max-w-md rounded-3xl bg-white p-4 shadow-xl max-h-[90vh] overflow-y-auto"
-      >
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-zinc-900">
-            {editId ? "编辑公告" : "发布公告"}
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={submitting}
-            className="rounded-full bg-zinc-100 px-3 py-1 text-[11px] text-zinc-600"
-          >
-            取消
-          </button>
-        </div>
+    <Modal
+      title={editId ? "编辑公告" : "发布公告"}
+      onClose={onClose}
+      disabled={submitting}
+      className="max-h-[90vh] overflow-y-auto"
+    >
+      <form onSubmit={onSubmit}>
         <div className="space-y-3 text-xs">
           <div className="space-y-1">
             <label className="block text-[11px] font-medium text-zinc-600">
@@ -702,6 +641,6 @@ function PublishModal({
           </button>
         </div>
       </form>
-    </div>
+    </Modal>
   );
 }
