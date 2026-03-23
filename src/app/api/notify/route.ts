@@ -59,7 +59,7 @@ export async function POST(request: Request) {
 
     // 4. 获取团员邮箱
     const { data: users, error: dbError } = await supabase
-      .from("users")
+      .from("profiles")
       .select("email")
       .not("email", "is", null)
       .neq("email", "");

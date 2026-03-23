@@ -2,52 +2,16 @@
 
 import React from "react";
 import { supabase } from "@/lib/supabase";
-
+import { INSTRUMENTS, OTHER_GROUP } from "@/lib/constants";
+import Modal from "@/components/ui/Modal";
+import type { ProfileRow, RehearsalRow } from "@/lib/types";
 /** 声部展示顺序：严格按此顺序分组，未在列表中的归入「其他」 */
-const INSTRUMENT_ORDER = [
-  "第一小提琴",
-  "第二小提琴",
-  "中提琴",
-  "大提琴",
-  "低音提琴",
-  "长笛",
-  "双簧管",
-  "单簧管",
-  "大管",
-  "圆号",
-  "小号",
-  "长号",
-  "大号",
-  "打击乐",
-  "键盘",
-  "竖琴",
-] as const;
 
-const OTHER_GROUP = "其他";
-
-type ProfileRow = {
-  id: string;
-  full_name: string | null;
-  email: string | null;
-  instrument: string | null;
-  status: string | null;
-  role: string | null;
-  college: string | null;
-  join_date: string | null;
-  created_at: string | null;
-};
-
-type RehearsalRow = {
-  id: string | number;
-  title: string | null;
-  date: string | null;
-  time: string | null;
-};
 
 function instrumentGroupKey(instrument: string | null): string {
   if (!instrument) return OTHER_GROUP;
   const trimmed = instrument.trim();
-  if (INSTRUMENT_ORDER.includes(trimmed as (typeof INSTRUMENT_ORDER)[number])) {
+  if (INSTRUMENTS.includes(trimmed as (typeof INSTRUMENTS)[number])) {
     return trimmed;
   }
   return OTHER_GROUP;
@@ -112,7 +76,7 @@ export default function MembersPage() {
       );
     }
     const ordered: { group: string; users: ProfileRow[] }[] = [];
-    for (const key of INSTRUMENT_ORDER) {
+    for (const key of INSTRUMENTS) {
       const users = map.get(key);
       if (users && users.length > 0) {
         ordered.push({ group: key, users });
@@ -130,12 +94,12 @@ export default function MembersPage() {
     setRehearsalsLoading(true);
     const { data, error } = await supabase
       .from("rehearsals")
-      .select("id, title, date, time")
-      .order("date", { ascending: true })
-      .order("time", { ascending: true });
+      .select("id, title, date")
+      .order("date", { ascending: true });
     setRehearsalsLoading(false);
     if (error || !data) {
       setRehearsalList([]);
+      alert("加载排练日程失败：" + error?.message);
       return;
     }
     const list = (data as RehearsalRow[]).filter((r) => {
@@ -280,205 +244,164 @@ export default function MembersPage() {
 
       {/* Modal A：排练考勤 */}
       {attendanceOpen && (
-        <div
-          className="fixed inset-0 z-40 flex items-end justify-center bg-black/40 px-4 pb-safe"
-          role="dialog"
-          aria-modal="true"
+        <Modal
+          title="总排练考勤统计"
+          onClose={() => setAttendanceOpen(false)}
+          className="flex max-h-[85vh] flex-col rounded-t-3xl border border-zinc-100"
         >
+          <p className="mb-2 text-[11px] text-zinc-500">
+            仅统计标题含「合排」或「全团」的排练；请选择起止排练
+          </p>
+          {rehearsalsLoading ? (
+            <p className="mb-3 text-xs text-zinc-400">加载合排日程…</p>
+          ) : rehearsalList.length === 0 ? (
+            <p className="mb-3 text-xs text-amber-600">
+              暂无合排/全团日程，请先在日程中发布
+            </p>
+          ) : (
+            <div className="mb-3 space-y-2">
+              <div className="space-y-1">
+                <label className="block text-[11px] font-medium text-zinc-600">
+                  起始排练
+                </label>
+                <select
+                  value={startRehearsalIndex}
+                  onChange={(e) =>
+                    setStartRehearsalIndex(Number(e.target.value))
+                  }
+                  className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900"
+                >
+                  {rehearsalList.map((r, idx) => (
+                    <option key={r.id} value={idx}>
+                      {(r.date ?? "—") + " " + (r.time ?? "")} {r.title ?? ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="block text-[11px] font-medium text-zinc-600">
+                  结束排练
+                </label>
+                <select
+                  value={endRehearsalIndex}
+                  onChange={(e) =>
+                    setEndRehearsalIndex(Number(e.target.value))
+                  }
+                  className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900"
+                >
+                  {rehearsalList.map((r, idx) => (
+                    <option key={r.id} value={idx}>
+                      {(r.date ?? "—") + " " + (r.time ?? "")} {r.title ?? ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
           <button
             type="button"
-            aria-label="关闭"
-            className="absolute inset-0"
-            onClick={() => setAttendanceOpen(false)}
-          />
-          <div className="relative flex max-h-[85vh] w-full max-w-md flex-col rounded-t-3xl border border-zinc-100 bg-white p-4 shadow-xl">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-base font-semibold text-zinc-900">
-                总排练考勤统计
-              </h2>
-              <button
-                type="button"
-                onClick={() => setAttendanceOpen(false)}
-                className="rounded-full bg-zinc-100 px-3 py-1 text-[11px] text-zinc-600 hover:bg-zinc-200"
-              >
-                关闭
-              </button>
-            </div>
+            onClick={handleExportCsv}
+            disabled={statsRows.length === 0}
+            className="mb-3 w-full rounded-2xl bg-zinc-900 px-4 py-3 text-sm font-medium text-white shadow-md hover:bg-zinc-800 disabled:opacity-50"
+          >
+            导出为 Excel (CSV)
+          </button>
 
-            <p className="mb-2 text-[11px] text-zinc-500">
-              仅统计标题含「合排」或「全团」的排练；请选择起止排练
-            </p>
-            {rehearsalsLoading ? (
-              <p className="mb-3 text-xs text-zinc-400">加载合排日程…</p>
-            ) : rehearsalList.length === 0 ? (
-              <p className="mb-3 text-xs text-amber-600">
-                暂无合排/全团日程，请先在日程中发布
+          <div className="min-h-0 flex-1 overflow-auto rounded-xl border border-zinc-100">
+            {statsLoading ? (
+              <p className="p-4 text-center text-xs text-zinc-400">
+                统计中…
+              </p>
+            ) : statsError ? (
+              <p className="p-3 text-sm text-red-600">{statsError}</p>
+            ) : statsRows.length === 0 ? (
+              <p className="p-4 text-center text-xs text-zinc-500">
+                该区间内暂无出勤记录
               </p>
             ) : (
-              <div className="mb-3 space-y-2">
-                <div className="space-y-1">
-                  <label className="block text-[11px] font-medium text-zinc-600">
-                    起始排练
-                  </label>
-                  <select
-                    value={startRehearsalIndex}
-                    onChange={(e) =>
-                      setStartRehearsalIndex(Number(e.target.value))
-                    }
-                    className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900"
-                  >
-                    {rehearsalList.map((r, idx) => (
-                      <option key={r.id} value={idx}>
-                        {(r.date ?? "—") + " " + (r.time ?? "")} {r.title ?? ""}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <label className="block text-[11px] font-medium text-zinc-600">
-                    结束排练
-                  </label>
-                  <select
-                    value={endRehearsalIndex}
-                    onChange={(e) =>
-                      setEndRehearsalIndex(Number(e.target.value))
-                    }
-                    className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900"
-                  >
-                    {rehearsalList.map((r, idx) => (
-                      <option key={r.id} value={idx}>
-                        {(r.date ?? "—") + " " + (r.time ?? "")} {r.title ?? ""}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            )}
-
-            <button
-              type="button"
-              onClick={handleExportCsv}
-              disabled={statsRows.length === 0}
-              className="mb-3 w-full rounded-2xl bg-zinc-900 px-4 py-3 text-sm font-medium text-white shadow-md hover:bg-zinc-800 disabled:opacity-50"
-            >
-              导出为 Excel (CSV)
-            </button>
-
-            <div className="min-h-0 flex-1 overflow-auto rounded-xl border border-zinc-100">
-              {statsLoading ? (
-                <p className="p-4 text-center text-xs text-zinc-400">
-                  统计中…
-                </p>
-              ) : statsError ? (
-                <p className="p-3 text-sm text-red-600">{statsError}</p>
-              ) : statsRows.length === 0 ? (
-                <p className="p-4 text-center text-xs text-zinc-500">
-                  该区间内暂无出勤记录
-                </p>
-              ) : (
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-zinc-100 bg-zinc-50">
-                      <th className="px-3 py-2 font-medium text-zinc-700">
-                        声部 - 姓名
-                      </th>
-                      <th className="px-3 py-2 font-medium text-zinc-700">
-                        出勤次数
-                      </th>
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-zinc-100 bg-zinc-50">
+                    <th className="px-3 py-2 font-medium text-zinc-700">
+                      声部 - 姓名
+                    </th>
+                    <th className="px-3 py-2 font-medium text-zinc-700">
+                      出勤次数
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {statsRows.map((r) => (
+                    <tr
+                      key={r.userId}
+                      className="border-b border-zinc-50 last:border-0"
+                    >
+                      <td className="px-3 py-2 text-zinc-900">{r.label}</td>
+                      <td className="px-3 py-2 text-zinc-700">{r.count}</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {statsRows.map((r) => (
-                      <tr
-                        key={r.userId}
-                        className="border-b border-zinc-50 last:border-0"
-                      >
-                        <td className="px-3 py-2 text-zinc-900">{r.label}</td>
-                        <td className="px-3 py-2 text-zinc-700">{r.count}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* Modal B：花名册 */}
       {rosterOpen && (
-        <div
-          className="fixed inset-0 z-40 flex items-end justify-center bg-black/40 px-4 pb-safe"
-          role="dialog"
-          aria-modal="true"
+        <Modal
+          title="全团成员信息统计"
+          onClose={() => setRosterOpen(false)}
+          className="flex max-h-[85vh] flex-col rounded-t-3xl border border-zinc-100 transition-all duration-300 ease-out"
         >
-          <button
-            type="button"
-            aria-label="关闭"
-            className="absolute inset-0"
-            onClick={() => setRosterOpen(false)}
-          />
-          <div className="relative flex max-h-[85vh] w-full max-w-md flex-col rounded-t-3xl border border-zinc-100 bg-white shadow-xl transition-all duration-300 ease-out">
-            <div className="flex shrink-0 items-center justify-between border-b border-zinc-100 px-4 py-3">
-              <h2 className="text-base font-semibold text-zinc-900">
-                全团成员信息统计
-              </h2>
-              <button
-                type="button"
-                onClick={() => setRosterOpen(false)}
-                className="rounded-full bg-zinc-100 px-3 py-1 text-[11px] text-zinc-600 hover:bg-zinc-200"
-              >
-                关闭
-              </button>
-            </div>
-            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
-              {rosterLoading ? (
-                <p className="py-8 text-center text-xs text-zinc-400">
-                  加载中…
-                </p>
-              ) : rosterError ? (
-                <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600">
-                  {rosterError}
-                </p>
-              ) : grouped.length === 0 ? (
-                <p className="py-8 text-center text-xs text-zinc-500">
-                  暂无已通过成员
-                </p>
-              ) : (
-                <div className="space-y-5">
-                  {grouped.map(({ group, users }) => (
-                    <div key={group}>
-                      <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-zinc-500">
-                        {group}
-                      </p>
-                      <ul className="space-y-2">
-                        {users.map((u) => (
-                          <li
-                            key={u.id}
-                            className="rounded-xl border border-zinc-100 bg-zinc-50/80 px-3 py-2 text-xs"
-                          >
-                            <p className="font-medium text-zinc-900">
-                              {(u.instrument ?? "—") + " - " + (u.full_name ?? "—")}
-                            </p>
-                            <p className="mt-0.5 text-zinc-500">
-                              学院：{u.college?.trim() || "—"}
-                            </p>
-                            <p className="mt-0.5 text-zinc-500">
-                              邮箱：{u.email ?? "—"}
-                            </p>
-                            <p className="mt-0.5 text-zinc-400">
-                              入团时间：{u.join_date?.trim() || "—"}
-                            </p>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            {rosterLoading ? (
+              <p className="py-8 text-center text-xs text-zinc-400">
+                加载中…
+              </p>
+            ) : rosterError ? (
+              <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600">
+                {rosterError}
+              </p>
+            ) : grouped.length === 0 ? (
+              <p className="py-8 text-center text-xs text-zinc-500">
+                暂无已通过成员
+              </p>
+            ) : (
+              <div className="space-y-5">
+                {grouped.map(({ group, users }) => (
+                  <div key={group}>
+                    <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+                      {group}
+                    </p>
+                    <ul className="space-y-2">
+                      {users.map((u) => (
+                        <li
+                          key={u.id}
+                          className="rounded-xl border border-zinc-100 bg-zinc-50/80 px-3 py-2 text-xs"
+                        >
+                          <p className="font-medium text-zinc-900">
+                            {(u.instrument ?? "—") + " - " + (u.full_name ?? "—")}
+                          </p>
+                          <p className="mt-0.5 text-zinc-500">
+                            学院：{u.college?.trim() || "—"}
+                          </p>
+                          <p className="mt-0.5 text-zinc-500">
+                            邮箱：{u.email ?? "—"}
+                          </p>
+                          <p className="mt-0.5 text-zinc-400">
+                            入团时间：{u.join_date?.trim() || "—"}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

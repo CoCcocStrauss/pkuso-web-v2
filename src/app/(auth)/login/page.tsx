@@ -12,7 +12,7 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = React.useState(false);
   const [errorMsg, setErrorMsg] = React.useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (submitting) return;
     setErrorMsg("");
@@ -37,6 +37,7 @@ export default function LoginPage() {
     router.replace("/");
   };
 
+  // TODO: 忘记密码？
   return (
     <div className="flex min-h-[80vh] items-center justify-center">
       <div className="w-full max-w-sm">

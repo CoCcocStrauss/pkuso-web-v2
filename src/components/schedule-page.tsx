@@ -5,6 +5,8 @@ import { useUser } from "@/context/UserContext";
 import { supabase } from "@/lib/supabase";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import Toggle from "@/components/ui/Toggle";
+import Modal from "@/components/ui/Modal";
 
 type RehearsalType = "合排" | "分排";
 
@@ -446,7 +448,14 @@ export function SchedulePage() {
         </div>
       </header>
 
-      <Toggle currentType={currentType} onChange={setCurrentType} />
+      <Toggle
+        options={[
+          { value: "合排", label: "合排" },
+          { value: "分排", label: "分排" },
+        ]}
+        value={currentType}
+        onChange={(v) => setCurrentType(v as RehearsalType)}
+      />
 
       <section className="space-y-3">
         {loading && schedules.length === 0 && (
@@ -568,114 +577,80 @@ export function SchedulePage() {
       )}
 
       {attendanceModalRehearsal && (
-        <div className="fixed inset-0 z-30 flex items-end justify-center bg-black/40 px-4 pb-safe">
-          <button
-            aria-label="关闭出勤名单弹窗"
-            className="absolute inset-0 h-full w-full"
-            onClick={handleCloseAttendanceModal}
-            disabled={attendanceLoading}
-          />
-          <div className="relative w-full max-w-md rounded-3xl bg-white p-4 shadow-xl">
-            <div className="mb-2 flex items-center justify-between">
-              <h2 className="text-base font-semibold text-zinc-900">
-                出勤名单
-              </h2>
-              <button
-                type="button"
-                onClick={handleCloseAttendanceModal}
-                disabled={attendanceLoading}
-                className="rounded-full bg-zinc-100 px-3 py-1 text-[11px] text-zinc-600 hover:bg-zinc-200"
-              >
-                关闭
-              </button>
-            </div>
-            <p className="mb-3 text-[11px] text-zinc-500">
-              排练：{attendanceModalRehearsal.repertoire}
-            </p>
+        <Modal
+          title="出勤名单"
+          onClose={handleCloseAttendanceModal}
+          disabled={attendanceLoading}
+          className="flex flex-col"
+        >
+          <p className="mb-3 text-[11px] text-zinc-500">
+            排练：{attendanceModalRehearsal.repertoire}
+          </p>
 
-            <div className="max-h-64 space-y-2 overflow-y-auto pt-1">
-              {attendanceLoading ? (
-                <p className="py-6 text-center text-[11px] text-zinc-400">
-                  正在加载...
-                </p>
-              ) : attendanceList.length === 0 ? (
-                <p className="py-6 text-center text-[11px] text-zinc-400">
-                  暂无签到记录
-                </p>
-              ) : (
-                attendanceList.map((row, index) => {
-                  const userInfo = (row as any).users as
-                    | { name?: string; section?: string }
-                    | undefined;
-                  const name = userInfo?.name ?? "未命名成员";
-                  const section = userInfo?.section ?? "声部未登记";
-                  const initials = name.slice(0, 2);
-                  return (
-                    <div
-                      key={`${row.id ?? index}`}
-                      className="flex items-center justify-between rounded-2xl border border-zinc-100 bg-zinc-50 px-3 py-2 text-xs"
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-900 text-[11px] font-medium text-white">
-                          {initials}
-                        </div>
-                        <div>
-                          <p className="text-[11px] font-medium text-zinc-900">
-                            {name}
-                          </p>
-                          <p className="text-[10px] text-zinc-500">
-                            {section}
-                          </p>
-                        </div>
+          <div className="max-h-64 space-y-2 overflow-y-auto pt-1">
+            {attendanceLoading ? (
+              <p className="py-6 text-center text-[11px] text-zinc-400">
+                正在加载...
+              </p>
+            ) : attendanceList.length === 0 ? (
+              <p className="py-6 text-center text-[11px] text-zinc-400">
+                暂无签到记录
+              </p>
+            ) : (
+              attendanceList.map((row, index) => {
+                const userInfo = (row as any).users as
+                  | { name?: string; section?: string }
+                  | undefined;
+                const name = userInfo?.name ?? "未命名成员";
+                const section = userInfo?.section ?? "声部未登记";
+                const initials = name.slice(0, 2);
+                return (
+                  <div
+                    key={`${row.id ?? index}`}
+                    className="flex items-center justify-between rounded-2xl border border-zinc-100 bg-zinc-50 px-3 py-2 text-xs"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-900 text-[11px] font-medium text-white">
+                        {initials}
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-medium text-zinc-900">
+                          {name}
+                        </p>
+                        <p className="text-[10px] text-zinc-500">
+                          {section}
+                        </p>
                       </div>
                     </div>
-                  );
-                })
-              )}
-            </div>
-
-            <div className="mt-4 flex items-center justify-end">
-              <button
-                type="button"
-                onClick={handleCloseAttendanceModal}
-                disabled={attendanceLoading}
-                className="rounded-full bg-zinc-900 px-4 py-1.5 text-[11px] font-medium text-white shadow-sm hover:bg-zinc-800 disabled:opacity-60"
-              >
-                关闭
-              </button>
-            </div>
+                  </div>
+                );
+              })
+            )}
           </div>
-        </div>
+
+          <div className="mt-4 flex items-center justify-end">
+            <button
+              type="button"
+              onClick={handleCloseAttendanceModal}
+              disabled={attendanceLoading}
+              className="rounded-full bg-zinc-900 px-4 py-1.5 text-[11px] font-medium text-white shadow-sm hover:bg-zinc-800 disabled:opacity-60"
+            >
+              关闭
+            </button>
+          </div>
+        </Modal>
       )}
 
       {codeModalRehearsal && (
-        <div className="fixed inset-0 z-30 flex items-end justify-center bg-black/40 px-4 pb-safe">
-          <button
-            aria-label="关闭签到弹窗"
-            className="absolute inset-0 h-full w-full"
-            onClick={handleCloseCodeModal}
-            disabled={codeSubmitting}
-          />
-          <form
-            onSubmit={handleCodeConfirm}
-            className="relative w-full max-w-md rounded-3xl bg-white p-4 shadow-xl"
-          >
-            <div className="mb-2 flex items-center justify-between">
-              <h2 className="text-base font-semibold text-zinc-900">
-                输入签到码
-              </h2>
-              <button
-                type="button"
-                onClick={handleCloseCodeModal}
-                disabled={codeSubmitting}
-                className="rounded-full bg-zinc-100 px-3 py-1 text-[11px] text-zinc-600 hover:bg-zinc-200"
-              >
-                取消
-              </button>
-            </div>
-            <p className="mb-3 text-[11px] text-zinc-500">
-              本次排练：{codeModalRehearsal.repertoire}
-            </p>
+        <Modal
+          title="输入签到码"
+          onClose={handleCloseCodeModal}
+          disabled={codeSubmitting}
+        >
+          <p className="mb-3 text-[11px] text-zinc-500">
+            本次排练：{codeModalRehearsal.repertoire}
+          </p>
+          <form onSubmit={handleCodeConfirm}>
             <div className="space-y-1 text-xs">
               <label className="block text-[11px] font-medium text-zinc-600">
                 四位数字签到码
@@ -714,37 +689,8 @@ export function SchedulePage() {
               </button>
             </div>
           </form>
-        </div>
+        </Modal>
       )}
-    </div>
-  );
-}
-
-type ToggleProps = {
-  currentType: RehearsalType;
-  onChange: (type: RehearsalType) => void;
-};
-
-function Toggle({ currentType, onChange }: ToggleProps) {
-  return (
-    <div className="inline-flex rounded-full bg-zinc-100 p-1 text-xs">
-      {(["合排", "分排"] as RehearsalType[]).map((type) => {
-        const active = currentType === type;
-        return (
-          <button
-            key={type}
-            type="button"
-            onClick={() => onChange(type)}
-            className={`min-w-[64px] rounded-full px-3 py-1 text-center transition-colors ${
-              active
-                ? "bg-zinc-900 text-white shadow-sm"
-                : "text-zinc-600 hover:text-zinc-900"
-            }`}
-          >
-            {type}
-          </button>
-        );
-      })}
     </div>
   );
 }
