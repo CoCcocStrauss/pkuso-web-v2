@@ -13,11 +13,14 @@ import { useRehearsals } from "@/hooks/useRehearsals";
 import type { RehearsalRow } from "@/lib/types";
 type RehearsalType = "合排" | "分排";
 
-interface RehearsalSectionProps {
-  refreshKey: number;
-}
+type AttendanceListItem = {
+  id?: string;
+  rehearsal_id: string;
+  user_id: string;
+  users?: { name?: string; section?: string };
+};
 
-export function RehearsalSection({ refreshKey }: RehearsalSectionProps) {
+export function RehearsalSection() {
   const [currentType, setCurrentType] = React.useState<RehearsalType>("合排");
   const { rehearsals, rehearsalsLoading, fetchRehearsals } = useRehearsals();
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
@@ -28,11 +31,12 @@ export function RehearsalSection({ refreshKey }: RehearsalSectionProps) {
 
   React.useEffect(() => {
     void fetchRehearsals();
-  }, [fetchRehearsals, refreshKey]);
+  }, [fetchRehearsals]);
 
-  const list = React.useMemo(() => {
+  const displayRehearsals = React.useMemo(() => {
     const targetType: "full" | "section" =
       currentType === "合排" ? "full" : "section";
+      console.log("Filtering rehearsals for type:", targetType, "from", rehearsals);
     return rehearsals.filter((item) => item.type === targetType);
   }, [currentType, rehearsals]);
 
@@ -93,13 +97,13 @@ export function RehearsalSection({ refreshKey }: RehearsalSectionProps) {
   const [codeError, setCodeError] = React.useState<string | null>(null);
   const [attendanceModalRehearsal, setAttendanceModalRehearsal] =
     React.useState<RehearsalRow | null>(null);
-  const [attendanceList, setAttendanceList] = React.useState<any[]>([]);
+  const [attendanceList, setAttendanceList] = React.useState<AttendanceListItem[]>([]);
   const [attendanceLoading, setAttendanceLoading] = React.useState(false);
 
   React.useEffect(() => {
     if (!user || user.role !== "member") return;
-    if (!list.length) return;
-    const ids = list.map((r) => r.id);
+    if (!displayRehearsals.length) return;
+    const ids = displayRehearsals.map((r) => r.id);
     const fetchAttendances = async () => {
       const { data, error } = await supabase
         .from("attendances")
@@ -121,7 +125,7 @@ export function RehearsalSection({ refreshKey }: RehearsalSectionProps) {
     };
 
     void fetchAttendances();
-  }, [user, list]);
+  }, [user, displayRehearsals]);
 
   const handleMemberSign = async (rehearsal: RehearsalRow) => {
     if (!user || user.role !== "member") return;
@@ -228,7 +232,7 @@ export function RehearsalSection({ refreshKey }: RehearsalSectionProps) {
       setAttendanceLoading(true);
       const { data, error } = await supabase
         .from("attendances")
-        .select("rehearsal_id, user_id")
+        .select("rehearsal_id, user_id, users(name,section)")
         .eq("rehearsal_id", rehearsalId);
       
       console.log("Fetched attendance data:", data, "error:", error);
@@ -237,7 +241,7 @@ export function RehearsalSection({ refreshKey }: RehearsalSectionProps) {
         console.warn("[Schedule] 加载出勤名单失败：", error.message);
         setAttendanceList([]);
       } else {
-        setAttendanceList(data ?? []);
+        setAttendanceList((data ?? []) as AttendanceListItem[]);
       }
       setAttendanceLoading(false);
     };
@@ -252,7 +256,66 @@ export function RehearsalSection({ refreshKey }: RehearsalSectionProps) {
   };
 
   return (
+
     <div className="space-y-6">
+
+      {/* 顶部区域：与社区【公告板】一一对齐 */}
+      <header className="mb-1">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <h1 className="text-lg font-semibold text-zinc-900">
+              本周排练日程
+            </h1>
+            <p className="mt-1 text-xs text-zinc-500">
+              查看乐团合排与分排安排
+            </p>
+          </div>
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={handleOpenCreate}
+              className="rounded-full bg-zinc-900 px-2.5 py-1 text-[11px] font-medium text-white shadow-sm hover:bg-zinc-800"
+            >
+              ➕ 添加{currentType}
+            </button>
+          )}
+        </div>
+        <div className="mt-2 flex justify-start">
+          <div
+            role="tablist"
+            aria-label="排练类型"
+            className="inline-flex rounded-full bg-zinc-100 p-1 text-xs"
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={currentType === "合排"}
+              onClick={() => setCurrentType("合排")}
+              className={`min-w-[64px] rounded-full px-3 py-1 text-center transition-colors ${
+                currentType === "合排"
+                  ? "bg-zinc-900 text-white shadow-sm"
+                  : "text-zinc-600 hover:text-zinc-900"
+              }`}
+            >
+              合排
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={currentType === "分排"}
+              onClick={() => setCurrentType("分排")}
+              className={`min-w-[64px] rounded-full px-3 py-1 text-center transition-colors ${
+                currentType === "分排"
+                  ? "bg-zinc-900 text-white shadow-sm"
+                  : "text-zinc-600 hover:text-zinc-900"
+              }`}
+            >
+              分排
+            </button>
+          </div>
+        </div>
+      </header>
+
       <section className="space-y-3">
         {rehearsalsLoading && rehearsals.length === 0 && (
           <p className="py-6 text-center text-xs text-zinc-400">
@@ -261,7 +324,7 @@ export function RehearsalSection({ refreshKey }: RehearsalSectionProps) {
         )}
 
         {!rehearsalsLoading &&
-          list.map((item) => {
+          displayRehearsals.map((item) => {
             const isExpired = isRehearsalEnded(
               item.end_time,
             );
@@ -351,7 +414,7 @@ export function RehearsalSection({ refreshKey }: RehearsalSectionProps) {
             );
           })}
 
-        {!rehearsalsLoading && list.length === 0 && (
+        {!rehearsalsLoading && displayRehearsals.length === 0 && (
           <p className="py-8 text-center text-xs text-zinc-500">
             暂无「{currentType}」安排。
           </p>
@@ -392,9 +455,7 @@ export function RehearsalSection({ refreshKey }: RehearsalSectionProps) {
               </p>
             ) : (
               attendanceList.map((row, index) => {
-                const userInfo = (row as any).users as
-                  | { name?: string; section?: string }
-                  | undefined;
+                const userInfo = row.users;
                 const name = userInfo?.name ?? "未命名成员";
                 const section = userInfo?.section ?? "声部未登记";
                 const initials = name.slice(0, 2);

@@ -87,24 +87,14 @@ export function formatDateTitle(date: string | null, timeRange: string): string 
 /**
  * 判断排练是否已结束
  * 优先使用结束时间，否则使用开始时间+30分钟作为结束时间
- * @param date 排练日期
  * @param endTime 结束时间
- * @param startTimeFallback 开始时间（作为备选）
  * @returns 是否已结束
  */
 export function isRehearsalEnded(
-  date: string | null,
   endTime: string | null | undefined,
-  startTimeFallback?: string | null,
 ): boolean {
-  if (!date || date.length < 10) return true;
-  const [y, m, d] = date.split("-").map(Number);
-  const timeStr = (endTime ?? "").trim() || (startTimeFallback ?? "").trim();
-  if (!timeStr) return false;
-  const [hh = 0, mm = 0] = timeStr.split(":").map(Number);
-  const end = endTime
-    ? new Date(y, m - 1, d, hh, mm, 0)
-    : new Date(y, m - 1, d, hh, mm + 30, 0);
+  const today = new Date();
+  const end = endTime ? new Date(endTime) : new Date(today.getTime() + 30 * 60 * 1000);
   return Date.now() > end.getTime();
 }
 
@@ -148,4 +138,50 @@ export function formatTime(s: string | null) {
     minute: "2-digit",
     hour12: false,
   }).format(d);
+}
+
+/**
+ * 将排练起止时间格式化为「月日 周几 起始 - 结束」的友好展示字符串。
+ *
+ * 示例：
+ *   startValue = "2025-03-24T19:30:00.000Z"
+ *   endValue = "2025-03-24T21:00:00.000Z"
+ *   返回 "3月24日 周一 19:30 - 21:00"
+ *
+ * 如果 `startValue` 无效，则返回原始字符串（或 `null`/`undefined`）;
+ * 如果 `endValue` 缺失或无效，则仅返回起始时间。
+ *
+ * @param {string | null | undefined} startValue 起始时间字符串（ISO 8601推荐）
+ * @param {string | null | undefined} endValue 结束时间字符串（ISO 8601推荐，可选）
+ * @returns 友好的排练时间范围文本
+ */
+export function formatRehearsalRange(
+  startValue: string | null | undefined, 
+  endValue: string | null | undefined
+): string {
+  const start = startValue ? new Date(startValue) : new Date(0);
+  if (Number.isNaN(start?.getTime())) return String(startValue);
+  const end = endValue ? new Date(endValue) : null;
+
+  const weekdayFormatter = new Intl.DateTimeFormat("zh-CN", {
+    weekday: "short",
+  });
+  const timeFormatter = new Intl.DateTimeFormat("zh-CN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+
+  const weekday = weekdayFormatter.format(start);
+  const month = start.getMonth() + 1;
+  const day = start.getDate();
+  const startTime = timeFormatter.format(start);
+  const datePart = `${month}月${day}日 ${weekday}`;
+
+  if (!end || Number.isNaN(end.getTime())) {
+    return `${datePart} ${startTime}`;
+  }
+
+  const endTime = timeFormatter.format(end);
+  return `${datePart} ${startTime} - ${endTime}`;
 }

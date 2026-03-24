@@ -20,10 +20,12 @@ export function useRehearsals() {
     setRehearsalsLoading(true);
     const { data, error } = await supabase
       .from("rehearsals")
-      .select("id, title, date, start_time, end_time, location, repertoire, created_at")
+      .select("id, title, date, start_time, end_time, location, repertoire, created_at, type")
       .order("date", { ascending: true })
       .order("start_time", { ascending: true });
     setRehearsalsLoading(false);
+
+    console.log("[useRehearsals] 获取排练数据：", data, error);
 
     if (error) {
       console.warn("[Home] 加载排练日程失败：", error.message);
