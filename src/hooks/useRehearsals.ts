@@ -20,7 +20,7 @@ export function useRehearsals() {
     setRehearsalsLoading(true);
     const { data, error } = await supabase
       .from("rehearsals")
-      .select("id, title, date, start_time, end_time, location, repertoire, created_at, type")
+      .select("id, title, date, start_time, end_time, location, repertoire, created_at, type, sign_in_code")
       .order("date", { ascending: true })
       .order("start_time", { ascending: true });
     setRehearsalsLoading(false);

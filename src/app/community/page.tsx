@@ -4,44 +4,35 @@ import React from "react";
 import imageCompression from "browser-image-compression";
 import { useUser } from "@/context/UserContext";
 import { supabase } from "@/lib/supabase";
+import { hasSectionText, formatPostDate, formatPostAuthorLabel} from "@/lib/utils";
 import Toggle from "@/components/ui/Toggle";
 import Modal from "@/components/ui/Modal";
 import { PostRow } from "@/lib/types";
-
-type PostType = "ensemble" | "gathering";
+import { PostType } from "@/lib/enums";
 
 type FormState = {
   title: string;
   content: string;
   type: PostType;
-  contactInfo: string;
-  currentSections: string;
-  missingSections: string;
-  imageFile: File | null;
+  contact_info: string;
+  current_sections: string;
+  missing_sections: string;
+  image_file: File | null;
 };
-
-function hasSectionText(s: string | null | undefined): boolean {
-  return s != null && typeof s === "string" && s.trim() !== "";
-}
-
-function formatPostDate(createdAt: string | null | undefined): string {
-  if (!createdAt) return "";
-  const d = new Date(createdAt);
-  if (Number.isNaN(d.getTime())) return "";
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
 
 const TYPE_LABEL: Record<PostType, string> = {
-  ensemble: "重奏",
-  gathering: "团建",
+  [PostType.ENSEMBLE]: "重奏",
+  [PostType.GATHERING]: "团建",
 };
 
-export default function CommunityPage() {
+interface CommunityPageProps {
+  onDelete:() => void;
+}
+
+
+export default function CommunityPage( { onDelete }: CommunityPageProps) {
   const { user } = useUser();
-  const [view, setView] = React.useState<PostType>("ensemble");
+  const [view, setView] = React.useState<PostType>(PostType.ENSEMBLE);
   const [posts, setPosts] = React.useState<PostRow[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [detailPost, setDetailPost] = React.useState<PostRow | null>(null);
@@ -50,11 +41,11 @@ export default function CommunityPage() {
   const [form, setForm] = React.useState<FormState>({
     title: "",
     content: "",
-    type: "ensemble",
-    contactInfo: "",
-    currentSections: "",
-    missingSections: "",
-    imageFile: null,
+    type: PostType.ENSEMBLE,
+    contact_info: "",
+    current_sections: "",
+    missing_sections: "",
+    image_file: null,
   });
   const [submitting, setSubmitting] = React.useState(false);
   const [imagePreviewUrl, setImagePreviewUrl] = React.useState<string | null>(
@@ -66,30 +57,41 @@ export default function CommunityPage() {
     const { data, error } = await supabase
       .from("posts")
       .select(
-        "id, title, type, content, image_url, author_id, created_at, contact_info, current_sections, missing_sections",
+        "id, created_at, author_id, title, type, content, is_active, current_sections, missing_sections, contact_info, image_url, profiles!posts_author_id_fkey(full_name, instrument)",
       )
       .order("created_at", { ascending: false });
 
     if (error) {
       console.warn("[Community] 加载公告失败：", error.message);
       setPosts([]);
-    } else {
-      // Supabase 嵌套 users 可能返回单对象或数组，统一取第一项以符合 PostRow
-      const raw = (data ?? []) as Array<
-        PostRow & { users?: PostRow["users"] | Array<{ name: string; section: string }> }
-      >;
-      const normalized: PostRow[] = raw.map((row) => {
-        const u = row.users;
-        const users =
-          Array.isArray(u) && u.length > 0
-            ? { name: u[0].name, section: u[0].section }
-            : u && !Array.isArray(u)
-              ? u
-              : null;
-        return { ...row, users };
-      });
-      setPosts(normalized);
+      setLoading(false);
+      return;
     }
+
+    // 正规化：将 Supabase 返回的嵌套 profiles 转换为 PostRow 字段
+    const normalized: PostRow[] = (data as any[])
+      ?.map((row) => ({
+        id: row.id,
+        title: row.title,
+        type: row.type,
+        content: row.content,
+        image_url: row.image_url,
+        author_id: row.author_id,
+        created_at: row.created_at,
+        contact_info: row.contact_info,
+        current_sections: row.current_sections,
+        missing_sections: row.missing_sections,
+        _section: null,
+        profiles: row.profiles 
+          ? {
+              full_name: row.profiles.full_name,
+              instrument: row.profiles.instrument
+            }
+          : null,
+      })
+    ) ?? [];
+
+    setPosts(normalized);
     setLoading(false);
   }, []);
 
@@ -97,7 +99,7 @@ export default function CommunityPage() {
     void fetchPosts();
   }, [fetchPosts]);
 
-  const list = React.useMemo(
+  const postList = React.useMemo(
     () => posts.filter((p) => p.type === view),
     [posts, view],
   );
@@ -106,13 +108,13 @@ export default function CommunityPage() {
     if (initial) {
       setEditId(initial.id);
       setForm({
-        title: initial.title,
+        title: initial.title ?? "",
         content: initial.content ?? "",
         type: initial.type,
-        contactInfo: initial.contact_info ?? "",
-        currentSections: initial.current_sections ?? "",
-        missingSections: initial.missing_sections ?? "",
-        imageFile: null,
+        contact_info: initial.contact_info ?? "",
+        current_sections: initial.current_sections ?? "",
+        missing_sections: initial.missing_sections ?? "",
+        image_file: null,
       });
       setImagePreviewUrl(initial.image_url ?? null);
     } else {
@@ -120,11 +122,11 @@ export default function CommunityPage() {
       setForm({
         title: "",
         content: "",
-        type: "ensemble",
-        contactInfo: "",
-        currentSections: "",
-        missingSections: "",
-        imageFile: null,
+        type: PostType.ENSEMBLE,
+        contact_info: "",
+        current_sections: "",
+        missing_sections: "",
+        image_file: null,
       });
       setImagePreviewUrl(null);
     }
@@ -138,11 +140,11 @@ export default function CommunityPage() {
     setForm({
       title: "",
       content: "",
-      type: "ensemble",
-      contactInfo: "",
-      currentSections: "",
-      missingSections: "",
-      imageFile: null,
+      type: PostType.ENSEMBLE,
+      contact_info: "",
+      current_sections: "",
+      missing_sections: "",
+      image_file: null,
     });
     setImagePreviewUrl(null);
   };
@@ -155,29 +157,29 @@ export default function CommunityPage() {
     setImagePreviewUrl(url);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (submitting) return;
     if (!form.title.trim()) {
       alert("请填写标题。");
       return;
     }
-    if (!form.contactInfo.trim()) {
+    if (!form.contact_info.trim()) {
       alert("请填写联系方式（微信号或手机号）。");
       return;
     }
 
     setSubmitting(true);
     let imageUrl: string | null = null;
-    if (form.imageFile) {
-      let fileToUpload: File = form.imageFile;
+    if (form.image_file) {
+      let fileToUpload: File = form.image_file;
       try {
         const options = {
           maxSizeMB: 0.3,
           maxWidthOrHeight: 1024,
           useWebWorker: true,
         };
-        fileToUpload = await imageCompression(form.imageFile, options);
+        fileToUpload = await imageCompression(form.image_file, options);
       } catch (err) {
         console.warn("[Community] 图片压缩失败，使用原图上传：", err);
       }
@@ -203,11 +205,11 @@ export default function CommunityPage() {
       title: form.title.trim(),
       content: form.content.trim() || null,
       type: form.type,
-      contact_info: form.contactInfo.trim(),
+      contact_info: form.contact_info.trim(),
     };
     if (form.type === "ensemble") {
-      basePayload.current_sections = form.currentSections.trim() || null;
-      basePayload.missing_sections = form.missingSections.trim() || null;
+      basePayload.current_sections = form.current_sections.trim() || null;
+      basePayload.missing_sections = form.missing_sections.trim() || null;
     } else {
       basePayload.current_sections = null;
       basePayload.missing_sections = null;
@@ -216,6 +218,7 @@ export default function CommunityPage() {
 
     if (editId) {
       const payload = { ...basePayload };
+      
       const { error } = await supabase
         .from("posts")
         .update(basePayload)
@@ -233,10 +236,12 @@ export default function CommunityPage() {
         setSubmitting(false);
         return;
       }
+      console.log("[Community] 发布公告，Payload：", basePayload);
       const { error } = await supabase.from("posts").insert({
+        author_id: user.id,
         ...basePayload,
         image_url: imageUrl,
-        author_id: user.id,
+        
       });
       setSubmitting(false);
       if (error) {
@@ -259,19 +264,14 @@ export default function CommunityPage() {
       return;
     }
     setDetailPost(null);
-    alert("已删除。");
+    alert("已删除。");  
+    onDelete?.();
     void fetchPosts();
   };
 
   const handleSaveQr = (imageUrl: string) => {
     window.open(imageUrl, "_blank");
     alert("请在新窗口中长按图片保存。");
-  };
-
-  const authorLabel = (post: PostRow) => {
-    const u = post.users;
-    if (u?.name) return `${u.name}${u.section ? ` · ${u.section}` : ""}`;
-    return "未知";
   };
 
   return (
@@ -282,15 +282,13 @@ export default function CommunityPage() {
             <h1 className="text-lg font-semibold text-zinc-900">公告板</h1>
             <p className="mt-1 text-xs text-zinc-500">重奏与团建信息</p>
           </div>
-          {user?.role === "member" && (
-            <button
-              type="button"
-              onClick={() => openPublish()}
-              className="rounded-full bg-zinc-900 px-3 py-1 text-[11px] font-medium text-white shadow-sm hover:bg-zinc-800"
-            >
-              发布公告
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => openPublish()}
+            className="rounded-full bg-zinc-900 px-3 py-1 text-[11px] font-medium text-white shadow-sm hover:bg-zinc-800"
+          >
+            发布公告
+          </button>
         </div>
         <div className="mt-2">
           <Toggle
@@ -311,7 +309,7 @@ export default function CommunityPage() {
           </p>
         )}
         {!loading &&
-          list.map((post) => (
+          postList.map((post) => (
             <article
               key={post.id}
               className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-3 shadow-[0_1px_4px_rgba(15,23,42,0.06)]"
@@ -346,7 +344,7 @@ export default function CommunityPage() {
                   </div>
                 </div>
               </button>
-              {(user?.id === post.author_id || user?.role === "admin") && (
+              { (user?.id === post.author_id || user?.role == "admin") && (
                 <div className="mt-2 flex gap-2 text-[11px]">
                   <button
                     type="button"
@@ -372,7 +370,7 @@ export default function CommunityPage() {
               )}
             </article>
           ))}
-        {!loading && list.length === 0 && (
+        {!loading && postList.length === 0 && (
           <p className="py-8 text-center text-xs text-zinc-500">
             暂无「{TYPE_LABEL[view]}」公告。
           </p>
@@ -412,8 +410,7 @@ function DetailModal({
   onClose: () => void;
   onSaveQr: (url: string) => void;
 }) {
-  const u = post.users;
-  const author = u?.name ? `${u.name}${u.section ? ` · ${u.section}` : ""}` : "未知";
+  const author = formatPostAuthorLabel(post);
   const showCurrent = post.type === "ensemble" && hasSectionText(post.current_sections);
   const showMissing = post.type === "ensemble" && hasSectionText(post.missing_sections);
 
@@ -506,7 +503,7 @@ function PublishModal({
   submitting: boolean;
   editId: string | null;
   onClose: () => void;
-  onSubmit: (e: React.FormEvent) => void;
+  onSubmit: (e: React.SubmitEvent<HTMLFormElement>) => void;
 }) {
   return (
     <Modal
@@ -542,8 +539,8 @@ function PublishModal({
             </label>
             <input
               type="text"
-              value={form.contactInfo}
-              onChange={(e) => setForm((f) => ({ ...f, contactInfo: e.target.value }))}
+              value={form.contact_info}
+              onChange={(e) => setForm((f) => ({ ...f, contact_info: e.target.value }))}
               className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-900 outline-none focus:border-zinc-400"
               placeholder="微信号或手机号"
             />
@@ -568,9 +565,9 @@ function PublishModal({
                 </label>
                 <input
                   type="text"
-                  value={form.currentSections}
+                  value={form.current_sections}
                   onChange={(e) =>
-                    setForm((f) => ({ ...f, currentSections: e.target.value }))
+                    setForm((f) => ({ ...f, current_sections: e.target.value }))
                   }
                   className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-900 outline-none focus:border-zinc-400"
                   placeholder="如：长笛、单簧管"
@@ -582,9 +579,9 @@ function PublishModal({
                 </label>
                 <input
                   type="text"
-                  value={form.missingSections}
+                  value={form.missing_sections}
                   onChange={(e) =>
-                    setForm((f) => ({ ...f, missingSections: e.target.value }))
+                    setForm((f) => ({ ...f, missing_sections: e.target.value }))
                   }
                   className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-900 outline-none focus:border-zinc-400"
                   placeholder="如：双簧管、大管"

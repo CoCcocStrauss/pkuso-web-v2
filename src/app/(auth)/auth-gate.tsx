@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useUser } from "@/context/UserContext";
 import { TabBar } from "@/components/tab-bar";
 import { supabase } from "@/lib/supabase";
+import { User } from "@/lib/types";
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const { user, login, logout } = useUser();
@@ -118,12 +119,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
       // 将 profile 写回全局状态，兼容现有页面使用 useUser()
       login({
-        id: sessionUserId,
-        name: (data?.full_name as string) ?? "未命名用户",
-        role: ((data?.role as any) ?? "member") as any,
-        section: (data?.instrument as string) ?? "",
-        status: (data?.status as string) ?? undefined,
-        email: (data?.email as string) ?? undefined,
+        ...data as User
       });
 
       setProfileLoading(false);

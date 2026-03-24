@@ -114,6 +114,19 @@ export function formatPostDate(createdAt: string | null | undefined): string {
 }
 
 /**
+ * 格式化公告作者与声部文本
+ * @param post PostRow
+ * @returns 例如："张三 · 小提琴" 或 "未知"
+ */
+export function formatPostAuthorLabel(post: import("./types").PostRow): string {
+  const u = post.profiles;
+  if (u?.full_name) {
+    return `${u.full_name}${u.instrument ? ` · ${u.instrument}` : ""}`;
+  }
+  return "未知";
+}
+
+/**
  * 检查是否有声部文本
  * @param s 声部字符串
  * @returns 是否有有效的声部文本

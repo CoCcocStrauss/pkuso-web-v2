@@ -105,6 +105,12 @@ export default function LoginPage() {
               去注册
             </Link>
           </div>
+
+          <div className="mt-4 text-center text-xs">
+            <Link href="/forgot-password" className="font-medium text-zinc-900">
+              忘记密码？
+            </Link>
+          </div>
         </div>
       </div>
     </div>

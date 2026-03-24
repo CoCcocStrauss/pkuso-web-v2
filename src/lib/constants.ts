@@ -56,7 +56,7 @@ export const REHEARSAL_TYPE_SECTION = "声部分排";
  * 帖子类型标签映射
  * 用于UI显示
  */
-export const TYPE_LABEL: Record<import("./types").PostType, string> = {
+export const TYPE_LABEL: Record<import("./enums").PostType, string> = {
   ensemble: "重奏",
   gathering: "团建",
 };

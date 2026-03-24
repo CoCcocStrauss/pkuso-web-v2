@@ -81,7 +81,7 @@ export function PublishRehearsalModal({
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (submitting) return;
 

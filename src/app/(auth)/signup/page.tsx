@@ -4,10 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { Console } from "console";
 import { INSTRUMENTS } from "@/lib/constants";
-
-// TODO：其他乐器类型界定
 
 export default function SignupPage() {
   const router = useRouter();
@@ -61,7 +58,6 @@ export default function SignupPage() {
     }
 
     const userId = signUpData.user?.id;
-    console.log(signUpData);
     if (!userId) {
       setSubmitting(false);
       setErrorMsg("注册成功但未获取到用户信息，请稍后重试。");

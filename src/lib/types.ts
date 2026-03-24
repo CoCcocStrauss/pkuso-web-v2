@@ -3,27 +3,7 @@
  * 包含应用中使用的所有共享类型定义
  */
 
-/**
- * 帖子类型枚举
- * - ensemble: 合奏相关帖子
- * - gathering: 聚会相关帖子
- */
-export type PostType = "ensemble" | "gathering";
-
-/**
- * 考勤状态类型枚举
- * - present: 出勤
- * - leave: 请假
- * - absent: 缺席
- */
-export type AttendanceStatusType = "present" | "leave" | "absent";
-
-/**
- * 用户角色类型枚举
- * - admin: 管理员
- * - member: 普通成员
- */
-export type UserRoleType = "admin" | "member";
+import { AttendanceStatus, ProfileStatus, PostType, RehearsalType, ProfileRole } from "./enums";
 
 /**
  * Supabase 数据表对应的类型定义
@@ -36,11 +16,28 @@ export type UserRoleType = "admin" | "member";
 export type AnnouncementRow = {
   /** 公告ID */
   id: string;
+  /** 创建时间 */
+  created_at: string;
   /** 公告内容 */
   content: string | null;
-  /** 创建时间 */
-  created_at: string | null;
 };
+
+/**
+ * 出勤表行类型
+ */
+export type AttendanceRow = {
+  /** 出勤ID */
+  id: string;
+  /** 排练ID */
+  rehearsal_id: string;
+  /** 用户ID */
+  user_id: string;
+  /** 创建时间 */
+  created_at: string;
+  /** 出勤状态 */
+  status: AttendanceStatus;
+};
+
 
 /**
  * 排练表行类型
@@ -63,7 +60,7 @@ export type RehearsalRow = {
   /** 排练曲目 */
   repertoire: string | null;
   /** 创建时间 */
-  created_at: string | null;
+  created_at: string;
   /** 排练类型 */
   type?: "full" | "section";
   /** 目标声部（仅声部分排时使用） */
@@ -73,75 +70,63 @@ export type RehearsalRow = {
 };
 
 /**
+ * 帖子表行类型
+ */
+export type PostRow = {
+  /** 帖子ID */
+  id: string;
+  /** 创建时间 */
+  created_at: string;
+  /** 作者ID */
+  author_id: string;
+  /** 帖子标题 */
+  title: string | null;
+  /** 帖子类型 */
+  type: PostType;
+  /** 帖子内容 */
+  content: string | null;
+  /** @deprecated 已废弃 */
+  _section?: string | null;
+  /** 是否活跃 */
+  is_active?: boolean;
+  /** 当前声部 */
+  current_sections: string | null;
+  /** 缺少声部 */
+  missing_sections: string | null;
+  /** 联系方式 */
+  contact_info: string | null;
+  /** 图片URL */
+  image_url: string | null;
+  /** 扩展：作者信息（从 profiles 映射而来） */
+  profiles: { full_name: string | null; instrument: string | null } | null;
+};
+
+/**
  * 用户资料表行类型
  */
 export type ProfileRow = {
   /** 用户ID */
   id: string;
+  /** 创建时间 */
+  created_at: string;
   /** 姓名 */
   full_name: string | null;
   /** 邮箱 */
   email: string | null;
   /** 乐器 */
   instrument: string | null;
+  /** 院系 */
+  college: string | null;
+  /** 加入日期 */
+  join_date: string | null;
+  /** 角色 */
+  role: string | null;
   /** 状态 */
   status: string | null;
-  /** 角色 */
-  role?: string | null;
-  /** 学院 */
-  college?: string | null;
-  /** 加入日期 */
-  join_date?: string | null;
-  /** 创建时间 */
-  created_at?: string | null;
 };
 
-/**
- * 帖子表行类型
- */
-export type PostRow = {
-  /** 帖子ID */
-  id: string;
-  /** 帖子标题 */
-  title: string;
-  /** 帖子类型 */
-  type: PostType;
-  /** 帖子内容 */
-  content: string;
-  /** 图片URL */
-  image_url: string | null;
-  /** 作者ID */
-  author_id: string;
-  /** 创建时间 */
-  created_at: string;
-  /** 联系方式 */
-  contact_info: string | null;
-  /** 当前声部 */
-  current_sections: string | null;
-  /** 缺少声部 */
-  missing_sections: string | null;
-  /** 用户信息 */
-  users?: { name: string; section: string } | null;
-};
 
 /**
  * 用户类型（应用内部使用）
  */
-export type User = {
-  /** 用户ID */
-  id: string;
-  /** 用户姓名 */
-  name: string;
-  /** 用户角色 */
-  role: UserRoleType;
-  /** 乐器声部 */
-  section: string;
-  /** 年级 */
-  grade?: string;
-  /** 学院/系 */
-  department?: string;
-  /** 用户状态 */
-  status?: string;
-  /** 邮箱 */
-  email?: string;
-};
+export type User = ProfileRow;

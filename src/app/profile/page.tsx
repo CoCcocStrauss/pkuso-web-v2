@@ -3,8 +3,9 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/context/UserContext";
-import { LogOut } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { LogOut, MessageSquare } from "lucide-react";
+import CommentSection from "@/app/sections/member/CommentSection"; 
 
 type ProfileRow = {
   id: string;
@@ -31,9 +32,10 @@ function formatTime(s: string | null) {
 export default function ProfilePage() {
   const router = useRouter();
   const { user, logout } = useUser();
+  const [isCommentModalOpen, setIsCommentModalOpen] = React.useState(false);
 
-  const fullName = user?.name ?? "—";
-  const instrument = user?.section ?? "—";
+  const fullName = user?.full_name ?? "—";
+  const instrument = user?.instrument ?? "—";
   const email = user?.email ?? "—";
   const isAdmin = user?.role === "admin";
   const initials =
@@ -104,7 +106,7 @@ export default function ProfilePage() {
   const [announcementSubmitting, setAnnouncementSubmitting] =
     React.useState(false);
 
-  const handlePublishAnnouncement = async (e: React.FormEvent) => {
+  const handlePublishAnnouncement = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     const text = announcementBody.trim();
     if (!text) {
@@ -128,7 +130,7 @@ export default function ProfilePage() {
     alert("公告已发布");
   };
 
-  const handleUpdatePassword = async (e: React.FormEvent) => {
+  const handleUpdatePassword = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     const pwd = newPwd.trim();
     const confirm = confirmPwd.trim();
@@ -282,6 +284,15 @@ export default function ProfilePage() {
         >
           <span>🔒 修改密码</span>
         </button>
+
+        <button
+          type="button"
+          onClick={() => setIsCommentModalOpen(true)}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+        >
+          <MessageSquare className="h-4 w-4" />
+          <span>写评论</span>
+        </button>
       </section>
 
       {/* 退出登录 */}
@@ -367,6 +378,24 @@ export default function ProfilePage() {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* 写评论弹窗 */}
+      {isCommentModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="comment-modal-title"
+        >
+          <button
+            type="button"
+            aria-label="关闭"
+            className="absolute inset-0"
+            onClick={() => setIsCommentModalOpen(false)}
+          />
+          <CommentSection onClose={() => setIsCommentModalOpen(false)} />
         </div>
       )}
     </div>

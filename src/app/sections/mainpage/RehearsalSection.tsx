@@ -3,22 +3,23 @@
 import React from "react";
 import { useUser } from "@/context/UserContext";
 import { supabase } from "@/lib/supabase";
-import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import Toggle from "@/components/ui/Toggle";
 import Modal from "@/components/ui/Modal";
-import { PublishRehearsalModal } from "../../components/modal/PublishRehearsalModal";
+import { PublishRehearsalModal } from "../../../components/modal/PublishRehearsalModal";
+import { AttendanceManageModal } from "../../../components/modal/AttendanceManageModal";
 import { isRehearsalEnded, formatRehearsalRange } from "@/lib/utils";
 import { useRehearsals } from "@/hooks/useRehearsals";
+import { useAttendance } from "@/hooks/useAttendance";
 import type { RehearsalRow } from "@/lib/types";
-type RehearsalType = "合排" | "分排";
+import { RehearsalType } from "@/lib/enums";
 
-interface RehearsalSectionProps {
-  refreshKey: number;
-}
+const TYPE_LABEL: Record<RehearsalType, string> = {
+  [RehearsalType.FULL]: "合排",
+  [RehearsalType.SECTION]: "分排",
+};
 
-export function RehearsalSection({ refreshKey }: RehearsalSectionProps) {
-  const [currentType, setCurrentType] = React.useState<RehearsalType>("合排");
+export function RehearsalSection() {
+  const [currentType, setCurrentType] = React.useState<RehearsalType>(RehearsalType.FULL);
   const { rehearsals, rehearsalsLoading, fetchRehearsals } = useRehearsals();
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
   const [editingRehearsal, setEditingRehearsal] = React.useState<RehearsalRow | null>(null);
@@ -26,13 +27,23 @@ export function RehearsalSection({ refreshKey }: RehearsalSectionProps) {
   const { user } = useUser();
   const isAdmin = user?.role === "admin";
 
+  const {
+    attendanceModalRehearsal: manageAttendanceModalRehearsal,
+    attendanceLoading: manageAttendanceLoading,
+    attendanceMembers: manageAttendanceMembers,
+    statusByUserId: manageStatusByUserId,
+    setStatusByUserId: setManageStatusByUserId,
+    setAttendanceModalRehearsal: setManageAttendanceModalRehearsal,
+    attendanceSaving: manageAttendanceSaving,
+    handleSaveAttendance: handleManageSaveAttendance,
+  } = useAttendance(user?.id, isAdmin);
+
   React.useEffect(() => {
     void fetchRehearsals();
-  }, [fetchRehearsals, refreshKey]);
+  }, [fetchRehearsals]);
 
-  const list = React.useMemo(() => {
-    const targetType: "full" | "section" =
-      currentType === "合排" ? "full" : "section";
+  const displayRehearsals = React.useMemo(() => {
+    const targetType = currentType;
     return rehearsals.filter((item) => item.type === targetType);
   }, [currentType, rehearsals]);
 
@@ -91,15 +102,11 @@ export function RehearsalSection({ refreshKey }: RehearsalSectionProps) {
   const [codeInput, setCodeInput] = React.useState("");
   const [codeSubmitting, setCodeSubmitting] = React.useState(false);
   const [codeError, setCodeError] = React.useState<string | null>(null);
-  const [attendanceModalRehearsal, setAttendanceModalRehearsal] =
-    React.useState<RehearsalRow | null>(null);
-  const [attendanceList, setAttendanceList] = React.useState<any[]>([]);
-  const [attendanceLoading, setAttendanceLoading] = React.useState(false);
 
   React.useEffect(() => {
     if (!user || user.role !== "member") return;
-    if (!list.length) return;
-    const ids = list.map((r) => r.id);
+    if (!displayRehearsals.length) return;
+    const ids = displayRehearsals.map((r) => r.id);
     const fetchAttendances = async () => {
       const { data, error } = await supabase
         .from("attendances")
@@ -121,7 +128,7 @@ export function RehearsalSection({ refreshKey }: RehearsalSectionProps) {
     };
 
     void fetchAttendances();
-  }, [user, list]);
+  }, [user, displayRehearsals]);
 
   const handleMemberSign = async (rehearsal: RehearsalRow) => {
     if (!user || user.role !== "member") return;
@@ -163,7 +170,7 @@ export function RehearsalSection({ refreshKey }: RehearsalSectionProps) {
     setCodeError(null);
   };
 
-  const handleCodeConfirm = async (e: React.FormEvent) => {
+  const handleCodeConfirm = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!user || user.role !== "member") return;
     if (!codeModalRehearsal) return;
@@ -214,45 +221,76 @@ export function RehearsalSection({ refreshKey }: RehearsalSectionProps) {
     setCodeError(null);
   };
 
-  const handleOpenAttendance = (rehearsal: RehearsalRow) => {
-    setAttendanceModalRehearsal(rehearsal);
-    setAttendanceList([]);
-    setAttendanceLoading(true);
+  const handleOpenManageAttendance = (rehearsal: RehearsalRow) => {
+    setManageAttendanceModalRehearsal(rehearsal);
   };
 
-  React.useEffect(() => {
-    if (!attendanceModalRehearsal) return;
-    const rehearsalId = attendanceModalRehearsal.id;
-
-    const fetchAttendance = async () => {
-      setAttendanceLoading(true);
-      const { data, error } = await supabase
-        .from("attendances")
-        .select("rehearsal_id, user_id")
-        .eq("rehearsal_id", rehearsalId);
-      
-      console.log("Fetched attendance data:", data, "error:", error);
-
-      if (error) {
-        console.warn("[Schedule] 加载出勤名单失败：", error.message);
-        setAttendanceList([]);
-      } else {
-        setAttendanceList(data ?? []);
-      }
-      setAttendanceLoading(false);
-    };
-
-    void fetchAttendance();
-  }, [attendanceModalRehearsal]);
-
-  const handleCloseAttendanceModal = () => {
-    if (attendanceLoading) return;
-    setAttendanceModalRehearsal(null);
-    setAttendanceList([]);
+  const handleCloseManageAttendanceModal = () => {
+    if (manageAttendanceLoading) return;
+    setManageAttendanceModalRehearsal(null);
   };
 
   return (
+
     <div className="space-y-6">
+
+      {/* 顶部区域：与社区【公告板】一一对齐 */}
+      <header className="mb-1">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <h1 className="text-lg font-semibold text-zinc-900">
+              本周排练日程
+            </h1>
+            <p className="mt-1 text-xs text-zinc-500">
+              查看乐团合排与分排安排
+            </p>
+          </div>
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={handleOpenCreate}
+              className="rounded-full bg-zinc-900 px-2.5 py-1 text-[11px] font-medium text-white shadow-sm hover:bg-zinc-800"
+            >
+              ➕ 添加排练
+            </button>
+          )}
+        </div>
+        <div className="mt-2 flex justify-start">
+          <div
+            role="tablist"
+            aria-label="排练类型"
+            className="inline-flex rounded-full bg-zinc-100 p-1 text-xs"
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={currentType === RehearsalType.FULL}
+              onClick={() => setCurrentType(RehearsalType.FULL)}
+              className={`min-w-[64px] rounded-full px-3 py-1 text-center transition-colors ${
+                currentType === RehearsalType.FULL
+                  ? "bg-zinc-900 text-white shadow-sm"
+                  : "text-zinc-600 hover:text-zinc-900"
+              }`}
+            >
+              合排
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={currentType === RehearsalType.SECTION}
+              onClick={() => setCurrentType(RehearsalType.SECTION)}
+              className={`min-w-[64px] rounded-full px-3 py-1 text-center transition-colors ${
+                currentType === RehearsalType.SECTION
+                  ? "bg-zinc-900 text-white shadow-sm"
+                  : "text-zinc-600 hover:text-zinc-900"
+              }`}
+            >
+              分排
+            </button>
+          </div>
+        </div>
+      </header>
+
       <section className="space-y-3">
         {rehearsalsLoading && rehearsals.length === 0 && (
           <p className="py-6 text-center text-xs text-zinc-400">
@@ -261,7 +299,7 @@ export function RehearsalSection({ refreshKey }: RehearsalSectionProps) {
         )}
 
         {!rehearsalsLoading &&
-          list.map((item) => {
+          displayRehearsals.map((item) => {
             const isExpired = isRehearsalEnded(
               item.end_time,
             );
@@ -319,13 +357,13 @@ export function RehearsalSection({ refreshKey }: RehearsalSectionProps) {
                       </div>
                       <button
                         type="button"
-                        onClick={() => handleOpenAttendance(item)}
+                        onClick={() => handleOpenManageAttendance(item)}
                         className="text-zinc-600 hover:text-zinc-900"
                       >
-                        📊 查看出勤
+                        ⚙️ 管理出勤
                       </button>
                     </div>
-                  ) : (
+                   ) : (
                     <div className="flex items-center">
                       {hasSigned ? (
                         <span className="rounded-full bg-emerald-50 px-3 py-1 text-[11px] text-emerald-600">
@@ -351,9 +389,9 @@ export function RehearsalSection({ refreshKey }: RehearsalSectionProps) {
             );
           })}
 
-        {!rehearsalsLoading && list.length === 0 && (
+        {!rehearsalsLoading && displayRehearsals.length === 0 && (
           <p className="py-8 text-center text-xs text-zinc-500">
-            暂无「{currentType}」安排。
+            暂无「{TYPE_LABEL[currentType]}」安排。
           </p>
         )}
       </section>
@@ -370,70 +408,18 @@ export function RehearsalSection({ refreshKey }: RehearsalSectionProps) {
         />
       )}
 
-      {attendanceModalRehearsal && (
-        <Modal
-          title="出勤名单"
-          onClose={handleCloseAttendanceModal}
-          disabled={attendanceLoading}
-          className="flex flex-col"
-        >
-          <p className="mb-3 text-[11px] text-zinc-500">
-            排练：{attendanceModalRehearsal.repertoire}
-          </p>
-
-          <div className="max-h-64 space-y-2 overflow-y-auto pt-1">
-            {attendanceLoading ? (
-              <p className="py-6 text-center text-[11px] text-zinc-400">
-                正在加载...
-              </p>
-            ) : attendanceList.length === 0 ? (
-              <p className="py-6 text-center text-[11px] text-zinc-400">
-                暂无签到记录
-              </p>
-            ) : (
-              attendanceList.map((row, index) => {
-                const userInfo = (row as any).users as
-                  | { name?: string; section?: string }
-                  | undefined;
-                const name = userInfo?.name ?? "未命名成员";
-                const section = userInfo?.section ?? "声部未登记";
-                const initials = name.slice(0, 2);
-                return (
-                  <div
-                    key={`${row.id ?? index}`}
-                    className="flex items-center justify-between rounded-2xl border border-zinc-100 bg-zinc-50 px-3 py-2 text-xs"
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-900 text-[11px] font-medium text-white">
-                        {initials}
-                      </div>
-                      <div>
-                        <p className="text-[11px] font-medium text-zinc-900">
-                          {name}
-                        </p>
-                        <p className="text-[10px] text-zinc-500">
-                          {section}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-
-          <div className="mt-4 flex items-center justify-end">
-            <button
-              type="button"
-              onClick={handleCloseAttendanceModal}
-              disabled={attendanceLoading}
-              className="rounded-full bg-zinc-900 px-4 py-1.5 text-[11px] font-medium text-white shadow-sm hover:bg-zinc-800 disabled:opacity-60"
-            >
-              关闭
-            </button>
-          </div>
-        </Modal>
-      )}
+      <AttendanceManageModal
+        rehearsal={manageAttendanceModalRehearsal}
+        loading={manageAttendanceLoading}
+        members={manageAttendanceMembers}
+        statusByUserId={manageStatusByUserId}
+        onStatusChange={(userId, status) =>
+          setManageStatusByUserId((prev) => ({ ...prev, [userId]: status }))
+        }
+        saving={manageAttendanceSaving}
+        onSave={handleManageSaveAttendance}
+        onClose={handleCloseManageAttendanceModal}
+      />
 
       {codeModalRehearsal && (
         <Modal

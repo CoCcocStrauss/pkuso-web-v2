@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import type { AttendanceStatusType, ProfileRow, RehearsalRow } from "@/lib/types";
+import type { ProfileRow, RehearsalRow } from "@/lib/types";
+import { AttendanceStatus, AttendanceStr2EnumMap } from "@/lib/enums";
 
 /**
  * 考勤管理 Hook
@@ -12,7 +13,7 @@ import type { AttendanceStatusType, ProfileRow, RehearsalRow } from "@/lib/types
  */
 export function useAttendance(userId?: string, isAdmin?: boolean) {
   const [myAttendanceByRehearsal, setMyAttendanceByRehearsal] = useState<
-    Record<string, AttendanceStatusType | string>
+    Record<string, AttendanceStatus | string>
   >({});
   const [myAttendanceLoading, setMyAttendanceLoading] = useState(false);
 
@@ -20,7 +21,7 @@ export function useAttendance(userId?: string, isAdmin?: boolean) {
   const [attendanceModalRehearsal, setAttendanceModalRehearsal] = useState<RehearsalRow | null>(null);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [attendanceMembers, setAttendanceMembers] = useState<ProfileRow[]>([]);
-  const [statusByUserId, setStatusByUserId] = useState<Record<string, AttendanceStatusType>>({});
+  const [statusByUserId, setStatusByUserId] = useState<Record<string, AttendanceStatus>>({});
   const [attendanceSaving, setAttendanceSaving] = useState(false);
 
   // 获取当前用户的考勤记录（直接写在 effect 中，避免额外的 useCallback 依赖）
@@ -102,22 +103,22 @@ export function useAttendance(userId?: string, isAdmin?: boolean) {
       const members = (profilesRes.data as ProfileRow[]) ?? [];
       if (!cancelled) setAttendanceMembers(members);
 
-      const existing: Record<string, AttendanceStatusType> = {};
+      const existing: Record<string, AttendanceStatus> = {};
       if (!attendRes.error && attendRes.data) {
         for (const row of attendRes.data as {
           user_id: string;
           status: string;
         }[]) {
           const s = row.status;
-          if (s === "present" || s === "leave" || s === "absent") {
-            existing[row.user_id] = s;
-          }
+
+          existing[row.user_id] = AttendanceStr2EnumMap[s];
+          
         }
       }
-      const initial: Record<string, AttendanceStatusType> = {};
+      const initial: Record<string, AttendanceStatus> = {};
       for (const m of members) {
         // 无记录视为未自助签到 → 默认缺席，由管理员补录
-        initial[m.id] = existing[m.id] ?? "absent";
+        initial[m.id] = existing[m.id] ?? AttendanceStatus.ABSENT;
       }
       if (!cancelled) setStatusByUserId(initial);
     };

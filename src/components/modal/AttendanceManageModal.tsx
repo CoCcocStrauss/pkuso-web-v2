@@ -1,12 +1,13 @@
 import React from "react";
-import type { ProfileRow, AttendanceStatusType, RehearsalRow } from "@/lib/types";
+import type { ProfileRow, RehearsalRow } from "@/lib/types";
+import { AttendanceStatus } from "@/lib/enums";
 import { instrumentGroupKey } from "@/lib/utils";
 import { INSTRUMENT_ORDER, OTHER_GROUP } from "@/lib/constants";
 
 /**
  * 考勤管理模态框组件属性接口
  */
-interface AttendanceModalProps {
+interface AttendanceManageModalProps {
   /** 当前管理的排练记录 */
   rehearsal: RehearsalRow | null;
   /** 加载状态 */
@@ -14,9 +15,9 @@ interface AttendanceModalProps {
   /** 成员列表 */
   members: ProfileRow[];
   /** 用户考勤状态映射 */
-  statusByUserId: Record<string, AttendanceStatusType>;
+  statusByUserId: Record<string, AttendanceStatus>;
   /** 考勤状态变更回调 */
-  onStatusChange: (userId: string, status: AttendanceStatusType) => void;
+  onStatusChange: (userId: string, status: AttendanceStatus) => void;
   /** 保存状态 */
   saving: boolean;
   /** 保存回调 */
@@ -32,7 +33,7 @@ interface AttendanceModalProps {
  * @param props 组件属性
  * @returns 考勤管理模态框组件
  */
-export function AttendanceModal({
+export function AttendanceManageModal({
   rehearsal,
   loading,
   members,
@@ -41,7 +42,7 @@ export function AttendanceModal({
   saving,
   onSave,
   onClose,
-}: AttendanceModalProps) {
+}: AttendanceManageModalProps) {
   /**
    * 按乐器分组的成员列表
    * 成员按乐器分组并排序，便于管理员管理
@@ -122,22 +123,22 @@ export function AttendanceModal({
                           {member.full_name || "未命名"}
                         </span>
                         <div className="flex gap-1">
-                          {(["present", "leave", "absent"] as const).map((status) => (
+                          {([AttendanceStatus.PRESENT, AttendanceStatus.LATE, AttendanceStatus.ABSENT] as const).map((status) => (
                             <button
                               key={status}
                               type="button"
                               onClick={() => onStatusChange(member.id, status)}
                               className={`px-2 py-1 text-xs rounded ${
                                 statusByUserId[member.id] === status
-                                  ? status === "present"
+                                  ? status === AttendanceStatus.PRESENT
                                     ? "bg-green-100 text-green-800"
-                                    : status === "leave"
+                                    : status === AttendanceStatus.LATE
                                     ? "bg-yellow-100 text-yellow-800"
                                     : "bg-red-100 text-red-800"
                                   : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
                               }`}
                             >
-                              {status === "present" ? "✓" : status === "leave" ? "⏸️" : "✗"}
+                              {status === AttendanceStatus.PRESENT ? "✅" : status === AttendanceStatus.LATE ? "🟨" : "❌"}
                             </button>
                           ))}
                         </div>
