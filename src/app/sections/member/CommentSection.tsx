@@ -48,31 +48,31 @@ export default function CommentSection({ onClose }: CommentSectionProps) {
   };
 
   return (
-    <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-      <h2 className="text-base font-semibold text-zinc-900">写评论</h2>
+    <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-800">
+      <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">写评论</h2>
       <form onSubmit={handleSubmit} className="mt-4 space-y-4">
         <div>
-          <label className="mb-1 block text-xs font-medium text-zinc-600">
+          <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
             标题
           </label>
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-400"
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             placeholder="请输入标题"
             disabled={submitting}
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium text-zinc-600">
+          <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
             内容
           </label>
           <textarea
             rows={4}
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-400"
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             placeholder="写下你的评论..."
             disabled={submitting}
           />
@@ -82,14 +82,14 @@ export default function CommentSection({ onClose }: CommentSectionProps) {
             type="button"
             onClick={onClose}
             disabled={submitting}
-            className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-xs font-medium text-zinc-600 hover:bg-zinc-50 disabled:opacity-60"
+            className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
           >
             取消
           </button>
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-full bg-zinc-900 px-4 py-2 text-xs font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
+            className="rounded-full bg-blue-500 px-4 py-2 text-xs font-medium text-white hover:bg-blue-500/90 disabled:opacity-60 dark:bg-blue-400 dark:text-slate-900"
           >
             {submitting ? "发送中…" : "发送"}
           </button>

@@ -1,8 +1,9 @@
 import React from "react";
 import type { ProfileRow, RehearsalRow } from "@/lib/types";
-import { AttendanceStatus } from "@/lib/enums";
+import { AttendanceStatus, REHEARSAL_TYPE_LABEL, RehearsalType } from "@/lib/enums";
 import { instrumentGroupKey } from "@/lib/utils";
 import { INSTRUMENT_ORDER, OTHER_GROUP } from "@/lib/constants";
+import { formatRehearsalTimeRange } from "@/lib/utils";
 
 /**
  * 考勤管理模态框组件属性接口
@@ -87,17 +88,17 @@ export function AttendanceManageModal({
         className="absolute inset-0"
         onClick={onClose}
       />
-      <div className="relative w-full max-w-md rounded-2xl bg-white shadow-xl max-h-[85vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-zinc-200 p-4">
+      <div className="relative w-full max-w-md rounded-2xl bg-white shadow-xl max-h-[85vh] overflow-y-auto dark:bg-zinc-900">
+        <div className="sticky top-0 bg-white border-b border-zinc-200 p-4 dark:bg-zinc-900 dark:border-zinc-800">
           <div className="flex items-center justify-between">
-            <h2 id="attendance-modal-title" className="text-sm font-semibold text-zinc-900">
-              考勤管理 - {rehearsal.title || "未命名排练"}
+            <h2 id="attendance-modal-title" className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+              考勤管理 - {rehearsal ? `${REHEARSAL_TYPE_LABEL[rehearsal.type || RehearsalType.FULL]} - ${rehearsal.repertoire || ""} - ${formatRehearsalTimeRange(rehearsal.start_time, rehearsal.end_time)} @ ${rehearsal.location || ""}` : "未命名排练"}
             </h2>
             <button
               type="button"
               disabled={saving}
               onClick={onClose}
-              className="rounded-full bg-zinc-100 px-3 py-1 text-[11px] text-zinc-600 hover:bg-zinc-200 disabled:opacity-50"
+              className="rounded-full bg-zinc-100 px-3 py-1 text-[11px] text-zinc-600 hover:bg-zinc-200 disabled:opacity-50 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
             >
               关闭
             </button>
@@ -108,18 +109,18 @@ export function AttendanceManageModal({
           {loading ? (
             <div className="animate-pulse space-y-3">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-12 bg-zinc-200 rounded"></div>
+                <div key={i} className="h-12 bg-zinc-200 rounded dark:bg-zinc-700"></div>
               ))}
             </div>
           ) : (
             <div className="space-y-4">
               {groupedMembers.map(({ group, users }) => (
                 <div key={group}>
-                  <h3 className="text-xs font-medium text-zinc-700 mb-2">{group}</h3>
+                  <h3 className="text-xs font-medium text-zinc-700 mb-2 dark:text-zinc-300">{group}</h3>
                   <div className="space-y-2">
                     {users.map((member) => (
                       <div key={member.id} className="flex items-center justify-between py-2">
-                        <span className="text-sm text-zinc-900">
+                        <span className="text-sm text-zinc-900 dark:text-zinc-100">
                           {member.full_name || "未命名"}
                         </span>
                         <div className="flex gap-1">
@@ -131,11 +132,11 @@ export function AttendanceManageModal({
                               className={`px-2 py-1 text-xs rounded ${
                                 statusByUserId[member.id] === status
                                   ? status === AttendanceStatus.PRESENT
-                                    ? "bg-green-100 text-green-800"
+                                    ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
                                     : status === AttendanceStatus.LATE
-                                    ? "bg-yellow-100 text-yellow-800"
-                                    : "bg-red-100 text-red-800"
-                                  : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+                                    ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                                    : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                                  : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
                               }`}
                             >
                               {status === AttendanceStatus.PRESENT ? "✅" : status === AttendanceStatus.LATE ? "🟨" : "❌"}
@@ -150,12 +151,12 @@ export function AttendanceManageModal({
             </div>
           )}
 
-          <div className="mt-6 pt-4 border-t border-zinc-200">
+          <div className="mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-800">
             <button
               type="button"
               onClick={onSave}
               disabled={saving}
-              className="w-full rounded-full bg-zinc-900 py-3 text-sm font-medium text-white shadow-sm hover:bg-zinc-800 disabled:opacity-60"
+              className="w-full rounded-full bg-zinc-900 py-3 text-sm font-medium text-white shadow-sm hover:bg-zinc-800 disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
             >
               {saving ? "保存中…" : "保存考勤"}
             </button>

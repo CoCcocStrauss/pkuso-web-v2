@@ -4,11 +4,12 @@ import React from "react";
 import imageCompression from "browser-image-compression";
 import { useUser } from "@/context/UserContext";
 import { supabase } from "@/lib/supabase";
-import { hasSectionText, formatPostDate, formatPostAuthorLabel} from "@/lib/utils";
+import { hasSectionText, formatPostAuthorLabel, formatDateTime} from "@/lib/utils";
 import Toggle from "@/components/ui/Toggle";
 import Modal from "@/components/ui/Modal";
 import { PostRow } from "@/lib/types";
-import { PostType } from "@/lib/enums";
+import { PostType, POST_TYPE_LABEL } from "@/lib/enums";
+import { usePosts } from "@/hooks/usePosts";
 
 type FormState = {
   title: string;
@@ -20,11 +21,6 @@ type FormState = {
   image_file: File | null;
 };
 
-const TYPE_LABEL: Record<PostType, string> = {
-  [PostType.ENSEMBLE]: "重奏",
-  [PostType.GATHERING]: "团建",
-};
-
 interface CommunityPageProps {
   onDelete:() => void;
 }
@@ -32,9 +28,8 @@ interface CommunityPageProps {
 
 export default function CommunityPage( { onDelete }: CommunityPageProps) {
   const { user } = useUser();
+  const { posts, loading, fetchPosts, createPost, updatePost, deletePost } = usePosts();
   const [view, setView] = React.useState<PostType>(PostType.ENSEMBLE);
-  const [posts, setPosts] = React.useState<PostRow[]>([]);
-  const [loading, setLoading] = React.useState(true);
   const [detailPost, setDetailPost] = React.useState<PostRow | null>(null);
   const [publishOpen, setPublishOpen] = React.useState(false);
   const [editId, setEditId] = React.useState<string | null>(null);
@@ -51,49 +46,6 @@ export default function CommunityPage( { onDelete }: CommunityPageProps) {
   const [imagePreviewUrl, setImagePreviewUrl] = React.useState<string | null>(
     null,
   );
-
-  const fetchPosts = React.useCallback(async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("posts")
-      .select(
-        "id, created_at, author_id, title, type, content, is_active, current_sections, missing_sections, contact_info, image_url, profiles!posts_author_id_fkey(full_name, instrument)",
-      )
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      console.warn("[Community] 加载公告失败：", error.message);
-      setPosts([]);
-      setLoading(false);
-      return;
-    }
-
-    // 正规化：将 Supabase 返回的嵌套 profiles 转换为 PostRow 字段
-    const normalized: PostRow[] = (data as any[])
-      ?.map((row) => ({
-        id: row.id,
-        title: row.title,
-        type: row.type,
-        content: row.content,
-        image_url: row.image_url,
-        author_id: row.author_id,
-        created_at: row.created_at,
-        contact_info: row.contact_info,
-        current_sections: row.current_sections,
-        missing_sections: row.missing_sections,
-        _section: null,
-        profiles: row.profiles 
-          ? {
-              full_name: row.profiles.full_name,
-              instrument: row.profiles.instrument
-            }
-          : null,
-      })
-    ) ?? [];
-
-    setPosts(normalized);
-    setLoading(false);
-  }, []);
 
   React.useEffect(() => {
     void fetchPosts();
@@ -152,7 +104,7 @@ export default function CommunityPage( { onDelete }: CommunityPageProps) {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setForm((prev) => ({ ...prev, imageFile: file }));
+    setForm((prev) => ({ ...prev, image_file: file }));
     const url = URL.createObjectURL(file);
     setImagePreviewUrl(url);
   };
@@ -201,31 +153,18 @@ export default function CommunityPage( { onDelete }: CommunityPageProps) {
       imageUrl = imagePreviewUrl;
     }
 
-    const basePayload: Record<string, unknown> = {
-      title: form.title.trim(),
-      content: form.content.trim() || null,
-      type: form.type,
-      contact_info: form.contact_info.trim(),
-    };
-    if (form.type === "ensemble") {
-      basePayload.current_sections = form.current_sections.trim() || null;
-      basePayload.missing_sections = form.missing_sections.trim() || null;
-    } else {
-      basePayload.current_sections = null;
-      basePayload.missing_sections = null;
-    }
-    if (imageUrl !== null) basePayload.image_url = imageUrl;
-
     if (editId) {
-      const payload = { ...basePayload };
-      
-      const { error } = await supabase
-        .from("posts")
-        .update(basePayload)
-        .eq("id", editId);
+      const success = await updatePost(editId, {
+        title: form.title.trim(),
+        content: form.content.trim() || null,
+        type: form.type,
+        contact_info: form.contact_info.trim(),
+        current_sections: form.type === "ensemble" ? form.current_sections.trim() || null : undefined,
+        missing_sections: form.type === "ensemble" ? form.missing_sections.trim() || null : undefined,
+        image_url: imageUrl ?? null,
+      });
       setSubmitting(false);
-      if (error) {
-        console.warn("[Community] 更新失败：", error.message);
+      if (!success) {
         alert("更新失败，请重试。");
         return;
       }
@@ -236,16 +175,18 @@ export default function CommunityPage( { onDelete }: CommunityPageProps) {
         setSubmitting(false);
         return;
       }
-      console.log("[Community] 发布公告，Payload：", basePayload);
-      const { error } = await supabase.from("posts").insert({
+      const success = await createPost({
         author_id: user.id,
-        ...basePayload,
-        image_url: imageUrl,
-        
+        title: form.title.trim(),
+        type: form.type,
+        content: form.content.trim() || null,
+        contact_info: form.contact_info.trim(),
+        current_sections: form.type === "ensemble" ? form.current_sections.trim() || null : undefined,
+        missing_sections: form.type === "ensemble" ? form.missing_sections.trim() || null : undefined,
+        image_url: imageUrl ?? null,
       });
       setSubmitting(false);
-      if (error) {
-        console.warn("[Community] 发布失败：", error.message);
+      if (!success) {
         alert("发布失败，请重试。");
         return;
       }
@@ -257,9 +198,8 @@ export default function CommunityPage( { onDelete }: CommunityPageProps) {
 
   const handleDelete = async (id: string) => {
     if (!window.confirm("确定要删除这条公告吗？")) return;
-    const { error } = await supabase.from("posts").delete().eq("id", id);
-    if (error) {
-      console.warn("[Community] 删除失败：", error.message);
+    const success = await deletePost(id);
+    if (!success) {
       alert("删除失败，请重试。");
       return;
     }
@@ -279,13 +219,13 @@ export default function CommunityPage( { onDelete }: CommunityPageProps) {
       <header className="mb-1">
         <div className="flex items-center justify-between gap-2">
           <div>
-            <h1 className="text-lg font-semibold text-zinc-900">公告板</h1>
-            <p className="mt-1 text-xs text-zinc-500">重奏与团建信息</p>
+            <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">公告板</h1>
+            <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">重奏与团建信息</p>
           </div>
           <button
             type="button"
             onClick={() => openPublish()}
-            className="rounded-full bg-zinc-900 px-3 py-1 text-[11px] font-medium text-white shadow-sm hover:bg-zinc-800"
+            className="rounded-full bg-blue-500 px-3 py-1 text-[11px] font-medium text-black shadow-sm hover:bg-blue-500/90 dark:bg-blue-400 dark:text-slate-900 dark:hover:bg-blue-400/90"
           >
             发布公告
           </button>
@@ -293,8 +233,8 @@ export default function CommunityPage( { onDelete }: CommunityPageProps) {
         <div className="mt-2">
           <Toggle
             options={[
-              { value: "ensemble", label: TYPE_LABEL.ensemble },
-              { value: "gathering", label: TYPE_LABEL.gathering },
+              { value: "ensemble", label: POST_TYPE_LABEL[PostType.ENSEMBLE] },
+              { value: "gathering", label: POST_TYPE_LABEL[PostType.GATHERING] },
             ]}
             value={view}
             onChange={(v) => setView(v as PostType)}
@@ -304,7 +244,7 @@ export default function CommunityPage( { onDelete }: CommunityPageProps) {
 
       <section className="space-y-3">
         {loading && posts.length === 0 && (
-          <p className="py-6 text-center text-xs text-zinc-400">
+          <p className="py-6 text-center text-xs text-slate-600 dark:text-slate-400">
             正在加载…
           </p>
         )}
@@ -312,7 +252,7 @@ export default function CommunityPage( { onDelete }: CommunityPageProps) {
           postList.map((post) => (
             <article
               key={post.id}
-              className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-3 shadow-[0_1px_4px_rgba(15,23,42,0.06)]"
+              className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3 shadow-[0_1px_4px_rgba(15,23,42,0.06)] dark:border-slate-700 dark:bg-slate-900/70"
             >
               <button
                 type="button"
@@ -321,23 +261,23 @@ export default function CommunityPage( { onDelete }: CommunityPageProps) {
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
-                    <h2 className="text-sm font-semibold text-zinc-900">
+                    <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                       {post.title}
                     </h2>
-                    <p className="mt-0.5 text-[11px] text-zinc-500">
-                      {TYPE_LABEL[post.type]}
-                      {formatPostDate(post.created_at) && ` · ${formatPostDate(post.created_at)}`}
+                    <p className="mt-0.5 text-[11px] text-slate-600 dark:text-slate-400">
+                      {POST_TYPE_LABEL[post.type]}
+                      {formatDateTime(post.created_at, "yyyy-MM-dd HH:mm") && ` · ${formatDateTime(post.created_at, "yyyy-MM-dd HH:mm")}`}
                     </p>
                     {post.type === "ensemble" &&
                       hasSectionText(post.missing_sections) && (
                       <div className="mt-2 flex flex-wrap gap-1.5">
-                        <span className="inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-700">
+                        <span className="inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-600 dark:bg-blue-900 dark:text-blue-300">
                           缺：{post.missing_sections!.trim()}
                         </span>
                       </div>
                     )}
                     {post.content != null && post.content.trim() !== "" && (
-                      <p className="mt-1 line-clamp-2 text-xs text-zinc-600">
+                      <p className="mt-1 line-clamp-2 text-xs text-slate-600 dark:text-slate-400">
                         {post.content}
                       </p>
                     )}
@@ -352,7 +292,7 @@ export default function CommunityPage( { onDelete }: CommunityPageProps) {
                       e.stopPropagation();
                       openPublish(post);
                     }}
-                    className="text-zinc-500 hover:text-zinc-800"
+                    className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
                   >
                     编辑
                   </button>
@@ -362,7 +302,7 @@ export default function CommunityPage( { onDelete }: CommunityPageProps) {
                       e.stopPropagation();
                       void handleDelete(post.id);
                     }}
-                    className="text-zinc-400 hover:text-red-500"
+                    className="text-slate-600 hover:text-red-500 dark:text-slate-400 dark:hover:text-red-400"
                   >
                     删除
                   </button>
@@ -371,8 +311,8 @@ export default function CommunityPage( { onDelete }: CommunityPageProps) {
             </article>
           ))}
         {!loading && postList.length === 0 && (
-          <p className="py-8 text-center text-xs text-zinc-500">
-            暂无「{TYPE_LABEL[view]}」公告。
+          <p className="py-8 text-center text-xs text-slate-600 dark:text-slate-400">
+            暂无「{POST_TYPE_LABEL[view]}」公告。
           </p>
         )}
       </section>
@@ -429,37 +369,37 @@ function DetailModal({
       onClose={onClose}
       className="max-h-[85vh] overflow-hidden flex flex-col"
     >
-      <p className="text-[11px] text-zinc-500 flex-shrink-0">
-        {TYPE_LABEL[post.type]} · {author}
+      <p className="text-[11px] text-slate-600 dark:text-slate-400 flex-shrink-0">
+        {POST_TYPE_LABEL[post.type]} · {author}
       </p>
       {(showCurrent || showMissing) && (
         <div className="mt-2 flex flex-wrap gap-1.5 flex-shrink-0">
           {showCurrent && (
-            <span className="inline-flex rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-600">
+            <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-400">
               已有：{post.current_sections!.trim()}
             </span>
           )}
           {showMissing && (
-            <span className="inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-700">
+            <span className="inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-600 dark:bg-blue-900 dark:text-blue-300">
               缺：{post.missing_sections!.trim()}
             </span>
           )}
         </div>
       )}
-      <div className="mt-2 overflow-y-auto flex-1 space-y-3 text-xs text-zinc-700">
+      <div className="mt-2 overflow-y-auto flex-1 space-y-3 text-xs text-slate-600 dark:text-slate-400">
         {post.content != null && post.content.trim() !== "" && (
           <p className="whitespace-pre-line leading-relaxed">{post.content}</p>
         )}
         {post.contact_info && (
-          <div className="rounded-2xl bg-zinc-50 p-3 flex items-center justify-between gap-2">
+          <div className="rounded-2xl bg-slate-100 p-3 flex items-center justify-between gap-2 dark:bg-slate-800">
             <div>
-              <p className="text-[11px] font-medium text-zinc-500">联系方式</p>
-              <p className="text-xs text-zinc-800">{post.contact_info}</p>
+              <p className="text-[11px] font-medium text-slate-600 dark:text-slate-400">联系方式</p>
+              <p className="text-xs text-slate-900 dark:text-slate-100">{post.contact_info}</p>
             </div>
             <button
               type="button"
               onClick={copyContact}
-              className="relative z-10 cursor-pointer rounded-full bg-zinc-900 px-3 py-1.5 text-[11px] font-medium text-white shrink-0"
+              className="relative z-10 cursor-pointer rounded-full bg-blue-500 px-3 py-1.5 text-[11px] font-medium text-white shrink-0 dark:bg-blue-400 dark:text-slate-900"
             >
               一键复制
             </button>
@@ -470,12 +410,12 @@ function DetailModal({
             <img
               src={post.image_url}
               alt="二维码或配图"
-              className="rounded-2xl border border-zinc-200 max-w-full h-auto max-h-64 object-contain"
+              className="rounded-2xl border border-slate-200 max-w-full h-auto max-h-64 object-contain dark:border-slate-700"
             />
             <button
               type="button"
               onClick={() => onSaveQr(post.image_url!)}
-              className="rounded-full bg-zinc-100 px-3 py-1.5 text-[11px] font-medium text-zinc-700 hover:bg-zinc-200"
+              className="rounded-full bg-slate-100 px-3 py-1.5 text-[11px] font-medium text-slate-600 hover:bg-slate-100/80 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-800/80"
             >
               保存二维码
             </button>
@@ -515,52 +455,52 @@ function PublishModal({
       <form onSubmit={onSubmit}>
         <div className="space-y-3 text-xs">
           <div className="space-y-1">
-            <label className="block text-[11px] font-medium text-zinc-600">
+            <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400">
               类型
             </label>
-            <div className="inline-flex rounded-full bg-zinc-100 p-1 text-[11px]">
+            <div className="inline-flex rounded-full bg-slate-100 p-1 text-[11px] dark:bg-slate-800">
               {(["ensemble", "gathering"] as PostType[]).map((t) => (
                 <button
                   key={t}
                   type="button"
                   onClick={() => setForm((f) => ({ ...f, type: t }))}
                   className={`min-w-[64px] rounded-full px-3 py-1 ${
-                    form.type === t ? "bg-zinc-900 text-white" : "text-zinc-600"
+                    form.type === t ? "bg-blue-500 text-white dark:bg-blue-400 dark:text-slate-900" : "text-slate-600 dark:text-slate-400"
                   }`}
                 >
-                  {TYPE_LABEL[t]}
+                  {POST_TYPE_LABEL[t]}
                 </button>
               ))}
             </div>
           </div>
           <div className="space-y-1">
-            <label className="block text-[11px] font-medium text-zinc-600">
-              联系方式 <span className="text-red-500">*</span>
+            <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400">
+              联系方式 <span className="text-red-500 dark:text-red-400">*</span>
             </label>
             <input
               type="text"
               value={form.contact_info}
               onChange={(e) => setForm((f) => ({ ...f, contact_info: e.target.value }))}
-              className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-900 outline-none focus:border-zinc-400"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-900 outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
               placeholder="微信号或手机号"
             />
           </div>
           <div className="space-y-1">
-            <label className="block text-[11px] font-medium text-zinc-600">
+            <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400">
               标题
             </label>
             <input
               type="text"
               value={form.title}
               onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-              className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-900 outline-none focus:border-zinc-400"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-900 outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
               placeholder="请输入标题"
             />
           </div>
           {form.type === "ensemble" && (
             <>
               <div className="space-y-1">
-                <label className="block text-[11px] font-medium text-zinc-600">
+                <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400">
                   已有声部
                 </label>
                 <input
@@ -569,12 +509,12 @@ function PublishModal({
                   onChange={(e) =>
                     setForm((f) => ({ ...f, current_sections: e.target.value }))
                   }
-                  className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-900 outline-none focus:border-zinc-400"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-900 outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                   placeholder="如：长笛、单簧管"
                 />
               </div>
               <div className="space-y-1">
-                <label className="block text-[11px] font-medium text-zinc-600">
+                <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400">
                   需要声部
                 </label>
                 <input
@@ -583,39 +523,39 @@ function PublishModal({
                   onChange={(e) =>
                     setForm((f) => ({ ...f, missing_sections: e.target.value }))
                   }
-                  className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-900 outline-none focus:border-zinc-400"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-900 outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                   placeholder="如：双簧管、大管"
                 />
               </div>
             </>
           )}
           <div className="space-y-1">
-            <label className="block text-[11px] font-medium text-zinc-600">
+            <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400">
               内容
             </label>
             <textarea
               value={form.content ?? ""}
               onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
-              className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-900 outline-none focus:border-zinc-400"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-900 outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
               rows={4}
               placeholder="请输入内容"
             />
           </div>
           <div className="space-y-1">
-            <label className="block text-[11px] font-medium text-zinc-600">
+            <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400">
               图片（如微信二维码）
             </label>
             <input
               type="file"
               accept="image/*"
               onChange={onImageChange}
-              className="w-full text-[11px] text-zinc-600 file:mr-2 file:rounded-full file:border-0 file:bg-zinc-100 file:px-3 file:py-1 file:text-xs"
+              className="w-full text-[11px] text-slate-600 file:mr-2 file:rounded-full file:border-0 file:bg-slate-100 file:px-3 file:py-1 file:text-xs dark:text-slate-400 dark:file:bg-slate-800 dark:file:text-slate-400"
             />
             {imagePreviewUrl && (
               <img
                 src={imagePreviewUrl}
                 alt="预览"
-                className="mt-2 rounded-2xl border border-zinc-200 max-w-full h-auto max-h-32 object-contain"
+                className="mt-2 rounded-2xl border border-slate-200 max-w-full h-auto max-h-32 object-contain dark:border-slate-700"
               />
             )}
           </div>
@@ -625,14 +565,14 @@ function PublishModal({
             type="button"
             onClick={onClose}
             disabled={submitting}
-            className="rounded-full px-4 py-1.5 text-[11px] text-zinc-500"
+            className="rounded-full px-4 py-1.5 text-[11px] text-slate-600 dark:text-slate-400"
           >
             取消
           </button>
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-full bg-zinc-900 px-4 py-1.5 text-[11px] font-medium text-white disabled:opacity-60"
+            className="rounded-full bg-blue-500 px-4 py-1.5 text-[11px] font-medium text-white disabled:opacity-60 dark:bg-blue-400 dark:text-slate-900"
           >
             {submitting ? "提交中…" : editId ? "保存" : "发布"}
           </button>

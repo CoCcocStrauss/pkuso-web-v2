@@ -12,6 +12,7 @@ import type { RehearsalRow } from "./types";
  * @param instrument 乐器名称
  * @returns 分组名称，如果不在标准乐器列表中则返回"其他"
  */
+
 export function instrumentGroupKey(instrument: string | null): string {
   if (!instrument) return OTHER_GROUP;
   const trimmed = instrument.trim();
@@ -19,69 +20,6 @@ export function instrumentGroupKey(instrument: string | null): string {
     return trimmed;
   }
   return OTHER_GROUP;
-}
-
-/**
- * 判断是否为全团合排
- * @param r 排练记录
- * @returns 是否为全团合排
- */
-export function isFullRehearsal(r: RehearsalRow): boolean {
-  const t = (r.title ?? "").trim();
-  if (t === "全团合排" || t.includes("合排")) return true;
-  if (isSectionRehearsal(r)) return false;
-  return true;
-}
-
-/**
- * 判断是否为声部分排
- * @param r 排练记录
- * @returns 是否为声部分排
- */
-export function isSectionRehearsal(r: RehearsalRow): boolean {
-  const t = (r.title ?? "").trim();
-  return t === "声部分排" || t.includes("分排");
-}
-
-/**
- * 格式化日期为 MM-DD 格式
- * @param date 日期字符串 (yyyy-mm-dd)
- * @returns 格式化后的日期字符串 (MM-DD)，如果无效则返回"—"
- */
-export function formatDateMMDD(date: string | null): string {
-  if (!date || date.length < 10) return "—";
-  const parts = date.split("-");
-  if (parts.length >= 3) return `${parts[1]}-${parts[2]}`;
-  return date;
-}
-
-/**
- * 格式化日期为长格式："3月10日 周二 19:30"
- * @param date 日期字符串 (yyyy-mm-dd)
- * @param time 时间字符串
- * @returns 格式化后的日期时间字符串
- */
-export function formatDateLong(date: string | null, time: string | null): string {
-  if (!date || date.length < 10) return "—";
-  const [y, m, d] = date.split("-").map(Number);
-  if (Number.isNaN(m) || Number.isNaN(d)) return "—";
-  const day = new Date(y, m - 1, d).getDay();
-  const timeStr = (time ?? "").trim() || "—";
-  return `${m}月${d}日 ${WEEKDAY[day]} ${timeStr}`;
-}
-
-/**
- * 日程卡片标题格式化：月-日 时间（与社区卡片对齐）
- * @param date 日期字符串 (yyyy-mm-dd)
- * @param timeRange 时间范围字符串
- * @returns 格式化后的标题字符串
- */
-export function formatDateTitle(date: string | null, timeRange: string): string {
-  if (!date || date.length < 10) return "—";
-  const [y, m, d] = date.split("-").map(Number);
-  if (Number.isNaN(m) || Number.isNaN(d)) return "—";
-  const timeStr = (timeRange ?? "").trim() || "—";
-  return `${m}-${d} ${timeStr}`;
 }
 
 /**
@@ -96,21 +34,6 @@ export function isRehearsalEnded(
   const today = new Date();
   const end = endTime ? new Date(endTime) : new Date(today.getTime() + 30 * 60 * 1000);
   return Date.now() > end.getTime();
-}
-
-/**
- * 格式化帖子日期
- * @param createdAt 创建时间
- * @returns 格式化后的日期字符串 (yyyy-MM-DD)
- */
-export function formatPostDate(createdAt: string | null | undefined): string {
-  if (!createdAt) return "";
-  const d = new Date(createdAt);
-  if (Number.isNaN(d.getTime())) return "";
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
 }
 
 /**
@@ -136,21 +59,81 @@ export function hasSectionText(s: string | null | undefined): boolean {
 }
 
 /**
- * 格式化时间
- * @param s 时间字符串或日期对象
- * @returns 格式化后的时间字符串
+ * 自定义日期时间格式化函数
+ * 支持的格式占位符：
+ * - yyyy: 四位年份
+ * - MM: 两位月份
+ * - dd: 两位日期
+ * - HH: 24小时制小时
+ * - hh: 12小时制小时
+ * - mm: 两位分钟
+ * - ss: 两位秒数
+ * - wd: 周几（中文）
+ * - Wd: 周几（英文缩写）
+ * 
+ * @param dateTime 日期时间字符串或Date对象
+ * @param format 格式字符串
+ * @returns 格式化后的日期时间字符串
  */
-export function formatTime(s: string | null) {
-  if (!s) return "—";
-  const d = new Date(s);
-  if (Number.isNaN(d.getTime())) return s;
-  return new Intl.DateTimeFormat("zh-CN", {
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).format(d);
+export function formatDateTime(dateTime: string | Date | null, format: string): string {
+  if (!dateTime) return "—";
+  
+  const d = typeof dateTime === "string" ? new Date(dateTime) : dateTime;
+  if (Number.isNaN(d.getTime())) return typeof dateTime === "string" ? dateTime : "—";
+  
+  const formatters: Record<string, () => string> = {
+    yyyy: () => String(d.getFullYear()),
+    MM: () => String(d.getMonth() + 1).padStart(2, "0"),
+    dd: () => String(d.getDate()).padStart(2, "0"),
+    HH: () => String(d.getHours()).padStart(2, "0"),
+    hh: () => String((d.getHours() % 12) || 12).padStart(2, "0"),
+    mm: () => String(d.getMinutes()).padStart(2, "0"),
+    ss: () => String(d.getSeconds()).padStart(2, "0"),
+    wd: () => ["周日", "周一", "周二", "周三", "周四", "周五", "周六"][d.getDay()],
+    Wd: () => ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d.getDay()]
+  };
+  
+  let result = format;
+  for (const [key, formatter] of Object.entries(formatters)) {
+    result = result.replace(new RegExp(key, "g"), formatter);
+  }
+  
+  return result;
+}
+
+/**
+ * 添加自定义日期时间格式化器
+ * @param key 格式占位符（如 "wd"）
+ * @param formatter 格式化函数
+ * @returns 新的格式化函数，包含自定义格式化器
+ */
+export function addDateTimeFormatter(key: string, formatter: (date: Date) => string) {
+  return (dateTime: string | Date | null, format: string): string => {
+    if (!dateTime) return "—";
+    
+    const d = typeof dateTime === "string" ? new Date(dateTime) : dateTime;
+    if (Number.isNaN(d.getTime())) return typeof dateTime === "string" ? dateTime : "—";
+    
+    const formatters: Record<string, () => string> = {
+      yyyy: () => String(d.getFullYear()),
+      MM: () => String(d.getMonth() + 1).padStart(2, "0"),
+      dd: () => String(d.getDate()).padStart(2, "0"),
+      HH: () => String(d.getHours()).padStart(2, "0"),
+      hh: () => String((d.getHours() % 12) || 12).padStart(2, "0"),
+      mm: () => String(d.getMinutes()).padStart(2, "0"),
+      ss: () => String(d.getSeconds()).padStart(2, "0"),
+      wd: () => ["周日", "周一", "周二", "周三", "周四", "周五", "周六"][d.getDay()],
+      Wd: () => ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d.getDay()],
+      [key]: () => formatter(d)
+    };
+    
+    let result = format;
+    for (const [k, f] of Object.entries(formatters)) {
+      result = result.replace(new RegExp(k, "g"), f);
+    }
+    
+    return result;
+  };
 }
 
 /**
@@ -168,33 +151,23 @@ export function formatTime(s: string | null) {
  * @param {string | null | undefined} endValue 结束时间字符串（ISO 8601推荐，可选）
  * @returns 友好的排练时间范围文本
  */
-export function formatRehearsalRange(
+export function formatRehearsalTimeRange(
   startValue: string | null | undefined, 
   endValue: string | null | undefined
 ): string {
-  const start = startValue ? new Date(startValue) : new Date(0);
-  if (Number.isNaN(start?.getTime())) return String(startValue);
-  const end = endValue ? new Date(endValue) : null;
-
-  const weekdayFormatter = new Intl.DateTimeFormat("zh-CN", {
-    weekday: "short",
-  });
-  const timeFormatter = new Intl.DateTimeFormat("zh-CN", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-
-  const weekday = weekdayFormatter.format(start);
-  const month = start.getMonth() + 1;
-  const day = start.getDate();
-  const startTime = timeFormatter.format(start);
-  const datePart = `${month}月${day}日 ${weekday}`;
-
-  if (!end || Number.isNaN(end.getTime())) {
-    return `${datePart} ${startTime}`;
-  }
-
-  const endTime = timeFormatter.format(end);
-  return `${datePart} ${startTime} - ${endTime}`;
+  if (!startValue) return "—";
+  
+  const start = new Date(startValue);
+  if (Number.isNaN(start.getTime())) return String(startValue);
+  
+  const startFormatted = formatDateTime(start, "MM月dd日 wd HH:mm");
+  
+  if (!endValue) return startFormatted;
+  
+  const end = new Date(endValue);
+  if (Number.isNaN(end.getTime())) return startFormatted;
+  
+  const endFormatted = formatDateTime(end, "HH:mm");
+  
+  return `${startFormatted} - ${endFormatted}`;
 }

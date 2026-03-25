@@ -1,26 +1,20 @@
- "use client";
+"use client";
 
 import React from "react";
 import { useUser } from "@/context/UserContext";
-import { supabase } from "@/lib/supabase";
 import "react-datepicker/dist/react-datepicker.css";
 import Modal from "@/components/ui/Modal";
 import { PublishRehearsalModal } from "../../../components/modal/PublishRehearsalModal";
 import { AttendanceManageModal } from "../../../components/modal/AttendanceManageModal";
-import { isRehearsalEnded, formatRehearsalRange } from "@/lib/utils";
+import { isRehearsalEnded, formatRehearsalTimeRange } from "@/lib/utils";
 import { useRehearsals } from "@/hooks/useRehearsals";
 import { useAttendance } from "@/hooks/useAttendance";
 import type { RehearsalRow } from "@/lib/types";
-import { RehearsalType } from "@/lib/enums";
-
-const TYPE_LABEL: Record<RehearsalType, string> = {
-  [RehearsalType.FULL]: "合排",
-  [RehearsalType.SECTION]: "分排",
-};
+import { RehearsalType, REHEARSAL_TYPE_LABEL } from "@/lib/enums";
 
 export function RehearsalSection() {
   const [currentType, setCurrentType] = React.useState<RehearsalType>(RehearsalType.FULL);
-  const { rehearsals, rehearsalsLoading, fetchRehearsals } = useRehearsals();
+  const { rehearsals, rehearsalsLoading, fetchRehearsals, deleteRehearsal } = useRehearsals();
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
   const [editingRehearsal, setEditingRehearsal] = React.useState<RehearsalRow | null>(null);
 
@@ -36,6 +30,8 @@ export function RehearsalSection() {
     setAttendanceModalRehearsal: setManageAttendanceModalRehearsal,
     attendanceSaving: manageAttendanceSaving,
     handleSaveAttendance: handleManageSaveAttendance,
+    handleMemberSignIn,
+    fetchAttendancesByRehearsals,
   } = useAttendance(user?.id, isAdmin);
 
   React.useEffect(() => {
@@ -68,24 +64,9 @@ export function RehearsalSection() {
     const ok = window.confirm("确定要删除此排练日程吗？");
     if (!ok) return;
 
-    const { error: attendError } = await supabase
-      .from("attendances")
-      .delete()
-      .eq("rehearsal_id", id);
 
-    if (attendError) {
-      console.warn("[Schedule] 删除出勤记录失败：", attendError.message);
-      alert("删除失败，请稍后重试。");
-      return;
-    }
-
-    const { error: rehearsalError } = await supabase
-      .from("rehearsals")
-      .delete()
-      .eq("id", id);
-
-    if (rehearsalError) {
-      console.warn("[Schedule] 删除日程失败：", rehearsalError.message);
+    const success = await deleteRehearsal(id);
+    if (!success) {
       alert("删除失败，请稍后重试。");
       return;
     }
@@ -107,56 +88,29 @@ export function RehearsalSection() {
     if (!user || user.role !== "member") return;
     if (!displayRehearsals.length) return;
     const ids = displayRehearsals.map((r) => r.id);
+
     const fetchAttendances = async () => {
-      const { data, error } = await supabase
-        .from("attendances")
-        .select("*")
-        .eq("user_id", user.id)
-        .in("rehearsal_id", ids);
-
-      if (error || !data) {
-        console.warn("[Schedule] 加载签到记录失败：", error?.message);
-        setAttendanceMap({});
-        return;
-      }
-
-      const map: Record<number, { status: string }> = {};
-      for (const row of data as { rehearsal_id: number; status: string }[]) {
-        map[row.rehearsal_id] = { status: row.status };
-      }
+      const map = await fetchAttendancesByRehearsals(ids);
       setAttendanceMap(map);
     };
 
     void fetchAttendances();
-  }, [user, displayRehearsals]);
+  }, [user, displayRehearsals, fetchAttendancesByRehearsals]);
 
   const handleMemberSign = async (rehearsal: RehearsalRow) => {
     if (!user || user.role !== "member") return;
     if (attendanceMap[rehearsal.id]) return;
     if (isRehearsalEnded(rehearsal.end_time)) return;
 
-    if (rehearsal.type === "section") {
-      const { data, error } = await supabase
-        .from("attendances")
-        .insert({
-          user_id: user.id,
-          rehearsal_id: rehearsal.id,
-          status: "present",
-        })
-        .select()
-        .single();
-
-      if (error || !data) {
-        console.warn("[Schedule] 分排签到失败：", error?.message);
-        alert("签到失败，请稍后重试。");
-        return;
+    if (rehearsal.type === RehearsalType.SECTION) {
+      const success = await handleMemberSignIn(rehearsal);
+      if (success) {
+        setAttendanceMap((prev) => ({
+          ...prev,
+          [rehearsal.id]: { status: "present" },
+        }));
+        alert("签到成功！");
       }
-
-      setAttendanceMap((prev) => ({
-        ...prev,
-        [rehearsal.id]: { status: "present" },
-      }));
-      alert("签到成功！");
       return;
     }
 
@@ -187,31 +141,21 @@ export function RehearsalSection() {
     }
 
     setCodeSubmitting(true);
-    const { data, error } = await supabase
-      .from("attendances")
-      .insert({
-        user_id: user.id,
-        rehearsal_id: codeModalRehearsal.id,
-        status: "present",
-      })
-      .select()
-      .single();
+    const success = await handleMemberSignIn(codeModalRehearsal);
     setCodeSubmitting(false);
 
-    if (error || !data) {
-      console.warn("[Schedule] 合排签到失败：", error?.message);
+    if (success) {
+      setAttendanceMap((prev) => ({
+        ...prev,
+        [codeModalRehearsal.id]: { status: "present" },
+      }));
+      alert("签到成功！");
+      setCodeModalRehearsal(null);
+      setCodeInput("");
+      setCodeError(null);
+    } else {
       setCodeError("签到失败，请稍后重试");
-      return;
     }
-
-    setAttendanceMap((prev) => ({
-      ...prev,
-      [codeModalRehearsal.id]: { status: "present" },
-    }));
-    alert("签到成功！");
-    setCodeModalRehearsal(null);
-    setCodeInput("");
-    setCodeError(null);
   };
 
   const handleCloseCodeModal = () => {
@@ -233,15 +177,14 @@ export function RehearsalSection() {
   return (
 
     <div className="space-y-6">
-
       {/* 顶部区域：与社区【公告板】一一对齐 */}
       <header className="mb-1">
         <div className="flex items-center justify-between gap-2">
           <div>
-            <h1 className="text-lg font-semibold text-zinc-900">
+            <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
               本周排练日程
             </h1>
-            <p className="mt-1 text-xs text-zinc-500">
+            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
               查看乐团合排与分排安排
             </p>
           </div>
@@ -249,7 +192,7 @@ export function RehearsalSection() {
             <button
               type="button"
               onClick={handleOpenCreate}
-              className="rounded-full bg-zinc-900 px-2.5 py-1 text-[11px] font-medium text-white shadow-sm hover:bg-zinc-800"
+              className="rounded-full bg-zinc-900 px-2.5 py-1 text-[11px] font-medium text-white shadow-sm hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
             >
               ➕ 添加排练
             </button>
@@ -259,7 +202,7 @@ export function RehearsalSection() {
           <div
             role="tablist"
             aria-label="排练类型"
-            className="inline-flex rounded-full bg-zinc-100 p-1 text-xs"
+            className="inline-flex rounded-full bg-zinc-100 p-1 text-xs dark:bg-zinc-800"
           >
             <button
               type="button"
@@ -268,8 +211,8 @@ export function RehearsalSection() {
               onClick={() => setCurrentType(RehearsalType.FULL)}
               className={`min-w-[64px] rounded-full px-3 py-1 text-center transition-colors ${
                 currentType === RehearsalType.FULL
-                  ? "bg-zinc-900 text-white shadow-sm"
-                  : "text-zinc-600 hover:text-zinc-900"
+                  ? "bg-zinc-900 text-white shadow-sm dark:bg-zinc-100 dark:text-zinc-900"
+                  : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-300"
               }`}
             >
               合排
@@ -281,8 +224,8 @@ export function RehearsalSection() {
               onClick={() => setCurrentType(RehearsalType.SECTION)}
               className={`min-w-[64px] rounded-full px-3 py-1 text-center transition-colors ${
                 currentType === RehearsalType.SECTION
-                  ? "bg-zinc-900 text-white shadow-sm"
-                  : "text-zinc-600 hover:text-zinc-900"
+                  ? "bg-zinc-900 text-white shadow-sm dark:bg-zinc-100 dark:text-zinc-900"
+                  : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-300"
               }`}
             >
               分排
@@ -293,7 +236,7 @@ export function RehearsalSection() {
 
       <section className="space-y-3">
         {rehearsalsLoading && rehearsals.length === 0 && (
-          <p className="py-6 text-center text-xs text-zinc-400">
+          <p className="py-6 text-center text-xs text-zinc-400 dark:text-zinc-500">
             正在加载日程…
           </p>
         )}
@@ -307,20 +250,20 @@ export function RehearsalSection() {
             return (
               <article
                 key={item.id}
-                className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-3 shadow-[0_1px_4px_rgba(15,23,42,0.06)]"
+                className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-3 shadow-[0_1px_4px_rgba(15,23,42,0.06)] dark:border-zinc-800 dark:bg-zinc-900/70"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="space-y-0.5 leading-tight">
-                    <p className="text-sm text-zinc-500">
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400">
                       {item.repertoire}
                       {item.type === "section" && item.target_section
                         ? ` · ${item.target_section}`
                         : null}
                     </p>
-                    <h2 className="text-base font-semibold text-zinc-900">
-                      {formatRehearsalRange(item.start_time, item.end_time)}
+                    <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+                      {formatRehearsalTimeRange(item.start_time, item.end_time)}
                     </h2>
-                    <p className="text-xs text-zinc-500">
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
                       地点：{item.location}
                       {item.type === "section" && item.target_section
                         ? ` · 针对：${item.target_section}`
@@ -330,12 +273,12 @@ export function RehearsalSection() {
                   {isAdmin ? (
                     <div className="flex flex-col items-end gap-1 text-[11px]">
                       {isExpired && (
-                        <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] text-zinc-500">
+                        <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
                           已结束
                         </span>
                       )}
                       {item.type === "full" && item.sign_in_code ? (
-                        <span className="text-[10px] text-zinc-500">
+                        <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
                           密码: {item.sign_in_code}
                         </span>
                       ) : null}
@@ -343,14 +286,14 @@ export function RehearsalSection() {
                         <button
                           type="button"
                           onClick={() => handleOpenEdit(item)}
-                          className="text-zinc-500 hover:text-blue-500"
+                          className="text-zinc-500 hover:text-blue-500 dark:text-zinc-400 dark:hover:text-blue-400"
                         >
                           编辑
                         </button>
                         <button
                           type="button"
                           onClick={() => handleDelete(item.id)}
-                          className="text-zinc-400 hover:text-red-500"
+                          className="text-zinc-400 hover:text-red-500 dark:text-zinc-500 dark:hover:text-red-400"
                         >
                           删除
                         </button>
@@ -358,7 +301,7 @@ export function RehearsalSection() {
                       <button
                         type="button"
                         onClick={() => handleOpenManageAttendance(item)}
-                        className="text-zinc-600 hover:text-zinc-900"
+                        className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-300"
                       >
                         ⚙️ 管理出勤
                       </button>
@@ -366,18 +309,18 @@ export function RehearsalSection() {
                    ) : (
                     <div className="flex items-center">
                       {hasSigned ? (
-                        <span className="rounded-full bg-emerald-50 px-3 py-1 text-[11px] text-emerald-600">
+                        <span className="rounded-full bg-emerald-50 px-3 py-1 text-[11px] text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400">
                           ✅ 已签到
                         </span>
                       ) : isExpired ? (
-                        <span className="rounded-full bg-zinc-100 px-3 py-1 text-[11px] text-zinc-400">
+                        <span className="rounded-full bg-zinc-100 px-3 py-1 text-[11px] text-zinc-400 dark:bg-zinc-800 dark:text-zinc-500">
                           已结束
                         </span>
                       ) : (
                         <button
                           type="button"
                           onClick={() => handleMemberSign(item)}
-                          className="inline-flex items-center justify-center rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-medium text-zinc-700 shadow-sm"
+                          className="inline-flex items-center justify-center rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-medium text-zinc-700 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
                         >
                           签到
                         </button>
@@ -390,8 +333,8 @@ export function RehearsalSection() {
           })}
 
         {!rehearsalsLoading && displayRehearsals.length === 0 && (
-          <p className="py-8 text-center text-xs text-zinc-500">
-            暂无「{TYPE_LABEL[currentType]}」安排。
+          <p className="py-8 text-center text-xs text-zinc-500 dark:text-zinc-400">
+            暂无「{REHEARSAL_TYPE_LABEL[currentType]}」安排。
           </p>
         )}
       </section>
@@ -427,12 +370,12 @@ export function RehearsalSection() {
           onClose={handleCloseCodeModal}
           disabled={codeSubmitting}
         >
-          <p className="mb-3 text-[11px] text-zinc-500">
+          <p className="mb-3 text-[11px] text-zinc-500 dark:text-zinc-400">
             本次排练：{codeModalRehearsal.repertoire}
           </p>
           <form onSubmit={handleCodeConfirm}>
             <div className="space-y-1 text-xs">
-              <label className="block text-[11px] font-medium text-zinc-600">
+              <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400">
                 四位数字签到码
               </label>
               <input
@@ -444,11 +387,11 @@ export function RehearsalSection() {
                   setCodeError(null);
                   setCodeInput(e.target.value);
                 }}
-                className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-900 outline-none focus:border-zinc-400"
+                className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                 placeholder="如：8848"
               />
               {codeError && (
-                <p className="text-[11px] text-red-500">{codeError}</p>
+                <p className="text-[11px] text-red-500 dark:text-red-400">{codeError}</p>
               )}
             </div>
             <div className="mt-4 flex items-center justify-end gap-2 text-xs">
@@ -456,14 +399,14 @@ export function RehearsalSection() {
                 type="button"
                 onClick={handleCloseCodeModal}
                 disabled={codeSubmitting}
-                className="rounded-full px-4 py-1.5 text-[11px] text-zinc-500 hover:bg-zinc-100"
+                className="rounded-full px-4 py-1.5 text-[11px] text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
               >
                 取消
               </button>
               <button
                 type="submit"
                 disabled={codeSubmitting}
-                className="rounded-full bg-zinc-900 px-4 py-1.5 text-[11px] font-medium text-white shadow-sm hover:bg-zinc-800 disabled:opacity-60"
+                className="rounded-full bg-zinc-900 px-4 py-1.5 text-[11px] font-medium text-white shadow-sm hover:bg-zinc-800 disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
               >
                 {codeSubmitting ? "确认中…" : "确认签到"}
               </button>
@@ -474,4 +417,3 @@ export function RehearsalSection() {
     </div>
   );
 }
-

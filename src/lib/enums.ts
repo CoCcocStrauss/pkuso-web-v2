@@ -27,7 +27,18 @@ export enum RehearsalType {
   SECTION = "section",
 }
 
+export const REHEARSAL_TYPE_LABEL: Record<RehearsalType, string> = {
+  [RehearsalType.FULL]: "合排",
+  [RehearsalType.SECTION]: "分排",
+};
+
+
 export enum PostType {
   ENSEMBLE = "ensemble",
   GATHERING = "gathering",
 }
+
+export const POST_TYPE_LABEL: Record<PostType, string> = {
+  [PostType.ENSEMBLE]: "重奏",
+  [PostType.GATHERING]: "团建",
+};

@@ -33,7 +33,21 @@ export function useRehearsals() {
       return;
     }
 
-    setRehearsals((data as any[]) as RehearsalRow[]);
+    setRehearsals((data as RehearsalRow[]) || []);
+  }, []);
+
+  /**
+   * 删除排练
+   * @param id 排练 ID
+   * @returns 是否删除成功
+   */
+  const deleteRehearsal = useCallback(async (id: string): Promise<boolean> => {
+    const { error } = await supabase.from("rehearsals").delete().eq("id", id);
+    if (error) {
+      console.warn("[useRehearsals] 删除排练失败：", error.message);
+      return false;
+    }
+    return true;
   }, []);
 
   return {
@@ -43,5 +57,7 @@ export function useRehearsals() {
     rehearsalsLoading,
     /** 获取排练数据的方法 */
     fetchRehearsals,
+    /** 删除排练的方法 */
+    deleteRehearsal,
   };
 }

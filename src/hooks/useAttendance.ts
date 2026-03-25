@@ -11,6 +11,7 @@ import { AttendanceStatus, AttendanceStr2EnumMap } from "@/lib/enums";
  * @param isAdmin 是否为管理员
  * @returns 考勤相关的状态和方法
  */
+
 export function useAttendance(userId?: string, isAdmin?: boolean) {
   const [myAttendanceByRehearsal, setMyAttendanceByRehearsal] = useState<
     Record<string, AttendanceStatus | string>
@@ -131,6 +132,36 @@ export function useAttendance(userId?: string, isAdmin?: boolean) {
   }, [attendanceModalRehearsal, isAdmin]);
 
   /**
+   * 获取指定排练的考勤记录
+   * @param rehearsalIds 排练ID数组
+   */
+  const fetchAttendancesByRehearsals = async (rehearsalIds: string[]) => {
+    if (!userId || isAdmin || rehearsalIds.length === 0) {
+      return {};
+    }
+
+    const { data, error } = await supabase
+      .from("attendances")
+      .select("rehearsal_id, status")
+      .eq("user_id", userId)
+      .in("rehearsal_id", rehearsalIds);
+
+    if (error) {
+      console.warn("[Schedule] 加载签到记录失败：", error?.message);
+      return {};
+    }
+
+    const map: Record<string, { status: string }> = {};
+    for (const row of (data ?? []) as {
+      rehearsal_id: string;
+      status: string;
+    }[]) {
+      map[row.rehearsal_id] = { status: row.status };
+    }
+    return map;
+  };
+
+  /**
    * 成员签到
    * @param r 排练记录
    */
@@ -142,17 +173,19 @@ export function useAttendance(userId?: string, isAdmin?: boolean) {
         user_id: userId,
         status: "present",
       },
-      { onConflict: "rehearsal_id,user_id" },
+      {
+        onConflict: "rehearsal_id,user_id",
+      },
     );
     if (error) {
       alert(error.message || "签到失败，请稍后重试。");
-      return;
+      return false;
     }
     setMyAttendanceByRehearsal((prev) => ({
       ...prev,
       [r.id]: "present",
     }));
-    alert("签到成功");
+    return true;
   };
 
   /**
@@ -212,5 +245,7 @@ export function useAttendance(userId?: string, isAdmin?: boolean) {
     handleMemberSignIn,
     /** 保存考勤记录方法 */
     handleSaveAttendance,
+    /** 获取指定排练的考勤记录 */
+    fetchAttendancesByRehearsals,
   };
 }

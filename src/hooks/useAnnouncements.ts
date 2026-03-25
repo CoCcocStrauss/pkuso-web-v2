@@ -33,6 +33,20 @@ export function useAnnouncements() {
     setAnnouncement(row);
   }, []);
 
+  /**
+   * 删除公告
+   * @param id 公告 ID
+   * @returns 是否删除成功
+   */
+  const deleteAnnouncement = useCallback(async (id: string): Promise<boolean> => {
+    const { error } = await supabase.from("announcements").delete().eq("id", id);
+    if (error) {
+      console.warn("[useAnnouncements] 删除公告失败：", error.message);
+      return false;
+    }
+    return true;
+  }, []);
+
   return {
     /** 当前公告数据 */
     announcement,
@@ -40,5 +54,7 @@ export function useAnnouncements() {
     announcementLoading,
     /** 获取最新公告的方法 */
     fetchLatestAnnouncement,
+    /** 删除公告的方法 */
+    deleteAnnouncement,
   };
 }
