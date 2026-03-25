@@ -4,7 +4,9 @@ import React from "react";
 import { supabase } from "@/lib/supabase";
 import { RehearsalRow } from "@/lib/types";
 import { formatRehearsalTimeRange } from "@/lib/utils";
-import DatePicker from "react-datepicker";
+import { DatePicker, registerLocale } from "react-datepicker";
+import { zhCN } from "date-fns/locale/zh-CN";  // 注意是从 date-fns 导入
+registerLocale("zh-cn", zhCN);
 import "react-datepicker/dist/react-datepicker.css";
 
 type DbRehearsalType = "full" | "section";
@@ -181,17 +183,17 @@ export function PublishRehearsalModal({
       />
       <form
         onSubmit={handleSubmit}
-        className="relative w-full max-w-md rounded-3xl bg-white p-4 shadow-xl dark:bg-zinc-900"
+        className="relative w-full max-w-md rounded-3xl bg-white p-4 shadow-xl dark:bg-background"
       >
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+          <h2 className="text-base font-semibold text-text dark:text-text">
             {editingRehearsal ? "编辑排练日程" : "发布排练日程"}
           </h2>
           <button
             type="button"
             onClick={onClose}
             disabled={submitting}
-            className="rounded-full bg-zinc-100 px-3 py-1 text-[11px] text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
+            className="rounded-full bg-background-secondary px-3 py-1 text-[11px] text-text-secondary hover:bg-background-secondary/80 dark:bg-background-secondary dark:text-text-secondary dark:hover:bg-background-secondary/80"
           >
             取消
           </button>
@@ -199,17 +201,17 @@ export function PublishRehearsalModal({
 
         <div className="space-y-3 text-xs">
           <div className="space-y-1">
-            <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400">
+            <label className="block text-[11px] font-medium text-text-secondary dark:text-text-secondary">
               排练类型
             </label>
-            <div className="inline-flex rounded-full bg-zinc-100 p-1 text-[11px] dark:bg-zinc-800">
+            <div className="inline-flex rounded-full bg-background-secondary p-1 text-[11px] dark:bg-background-secondary">
               <button
                 type="button"
                 onClick={() => handleChange("type", "full")}
                 className={`min-w-[72px] rounded-full px-3 py-1 ${
                   form.type === "full"
-                    ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                    : "text-zinc-600 dark:text-zinc-400"
+                    ? "bg-button-primary text-button-primary-text dark:bg-button-primary dark:text-button-primary-text"
+                    : "text-text-secondary dark:text-text-secondary"
                 }`}
               >
                 合排
@@ -219,8 +221,8 @@ export function PublishRehearsalModal({
                 onClick={() => handleChange("type", "section")}
                 className={`min-w-[72px] rounded-full px-3 py-1 ${
                   form.type === "section"
-                    ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                    : "text-zinc-600 dark:text-zinc-400"
+                    ? "bg-button-primary text-button-primary-text dark:bg-button-primary dark:text-button-primary-text"
+                    : "text-text-secondary dark:text-text-secondary"
                 }`}
               >
                 分排
@@ -230,21 +232,21 @@ export function PublishRehearsalModal({
 
           {isSection && (
             <div className="space-y-1">
-              <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400">
+              <label className="block text-[11px] font-medium text-text-secondary dark:text-text-secondary">
                 针对声部
               </label>
               <input
                 type="text"
                 value={form.target_section}
                 onChange={(e) => handleChange("target_section", e.target.value)}
-                className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                className="w-full rounded-xl border border-border bg-form px-3 py-2 text-xs text-text outline-none focus:border-border/80 dark:border-border dark:bg-form dark:text-text"
                 placeholder="如：第一小提琴 / 木管分排"
               />
             </div>
           )}
 
           <div className="space-y-1">
-            <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400">
+            <label className="block text-[11px] font-medium text-text-secondary dark:text-text-secondary">
               开始时间
             </label>
             <DatePicker
@@ -252,16 +254,17 @@ export function PublishRehearsalModal({
               onChange={(date: Date | null) => handleChange("start_time", date)}
               showTimeSelect
               timeIntervals={15}
-              dateFormat="yyyy-MM-dd HH:mm"
+              dateFormat="yyyy 年 MM 月 dd 日 HH:mm"
               placeholderText="选择开始时间"
-              className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              className="w-104 rounded-xl border border-border bg-form px-3 py-2 text-xs text-text outline-none focus:border-border/80 dark:border-border dark:bg-form dark:text-text"
               popperClassName="react-datepicker-popper-orchestra"
+              locale="zh-cn"
               calendarClassName="react-datepicker-orchestra"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400">
+            <label className="block text-[11px] font-medium text-text-secondary dark:text-text-secondary">
               结束时间
             </label>
             <DatePicker
@@ -269,35 +272,36 @@ export function PublishRehearsalModal({
               onChange={(date: Date | null) => handleChange("end_time", date)}
               showTimeSelect
               timeIntervals={15}
-              dateFormat="yyyy-MM-dd HH:mm"
+              dateFormat="yyyy 年 MM 月 dd 日 HH:mm"
               placeholderText="选择结束时间（可选）"
-              className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              className="w-104 rounded-xl border border-border bg-form px-3 py-2 text-xs text-text outline-none focus:border-border/80 dark:border-border dark:bg-form dark:text-text"
               popperClassName="react-datepicker-popper-orchestra"
+              locale="zh-cn"
               calendarClassName="react-datepicker-orchestra"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400">
+            <label className="block text-[11px] font-medium text-text-secondary dark:text-text-secondary">
               排练地点
             </label>
             <input
               type="text"
               value={form.location}
               onChange={(e) => handleChange("location", e.target.value)}
-              className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-              placeholder="如：新太阳b108"
+              className="w-full rounded-xl border border-border bg-form px-3 py-2 text-xs text-text outline-none focus:border-border/80 dark:border-border dark:bg-form dark:text-text"
+              placeholder="如：新太阳 b108"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400">
+            <label className="block text-[11px] font-medium text-text-secondary dark:text-text-secondary">
               排练曲目
             </label>
             <textarea
               value={form.repertoire}
               onChange={(e) => handleChange("repertoire", e.target.value)}
-              className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              className="w-full rounded-xl border border-border bg-form px-3 py-2 text-xs text-text outline-none focus:border-border/80 dark:border-border dark:bg-form dark:text-text"
               rows={2}
               placeholder="如：柴四第四乐章"
             />
@@ -305,7 +309,7 @@ export function PublishRehearsalModal({
 
           {form.type === "full" && (
             <div className="space-y-1">
-              <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400">
+              <label className="block text-[11px] font-medium text-text-secondary dark:text-text-secondary">
                 签到密码（4 位数字）
               </label>
               <input
@@ -314,19 +318,19 @@ export function PublishRehearsalModal({
                 maxLength={4}
                 value={form.sign_in_code}
                 onChange={(e) => handleChange("sign_in_code", e.target.value)}
-                className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                className="w-full rounded-xl border border-border bg-form px-3 py-2 text-xs text-text outline-none focus:border-border/80 dark:border-border dark:bg-form dark:text-text"
                 placeholder="如：8848"
               />
             </div>
           )}
 
-          <label className="mt-3 flex cursor-pointer items-center gap-2 text-xs text-zinc-700 dark:text-zinc-300">
+          <label className="mt-3 flex cursor-pointer items-center gap-2 text-xs text-text-secondary dark:text-text-secondary">
             <input
               type="checkbox"
               checked={notifyByEmail}
               onChange={(e) => setNotifyByEmail(e.target.checked)}
               disabled={submitting}
-              className="h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-400 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-300"
+              className="h-4 w-4 rounded border-border text-button-primary focus:ring-border/80 dark:border-border dark:bg-form dark:text-button-primary"
             />
             同时发送邮件通知全团
           </label>
@@ -337,14 +341,14 @@ export function PublishRehearsalModal({
             type="button"
             onClick={onClose}
             disabled={submitting}
-            className="rounded-full px-4 py-1.5 text-[11px] text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+            className="rounded-full px-4 py-1.5 text-[11px] text-text-secondary hover:bg-background-secondary dark:text-text-secondary dark:hover:bg-background-secondary"
           >
             取消
           </button>
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-full bg-zinc-900 px-4 py-1.5 text-[11px] font-medium text-white shadow-sm hover:bg-zinc-800 disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+            className="rounded-full bg-button-primary px-4 py-1.5 text-[11px] font-medium text-button-primary-text shadow-sm hover:bg-button-primary/90 disabled:opacity-60 dark:bg-button-primary dark:text-button-primary-text dark:hover:bg-button-primary/90"
           >
             {submitting ? (editingRehearsal ? "保存中…" : "发布中…") : editingRehearsal ? "保存" : "发布"}
           </button>

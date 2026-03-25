@@ -22,7 +22,7 @@ export function usePosts() {
     const { data, error } = await supabase
       .from("posts")
       .select(
-        "id, created_at, author_id, title, type, content, is_active, current_sections, missing_sections, contact_info, image_url, profiles!posts_author_id_fkey(full_name, instrument)",
+        "id, created_at, author_id, title, type, content, is_active, current_sections, missing_sections, contact_info, image_url, profiles!inner(full_name, instrument)",
       )
       .order("created_at", { ascending: false });
 

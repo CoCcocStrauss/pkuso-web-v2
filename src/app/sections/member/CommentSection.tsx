@@ -48,31 +48,31 @@ export default function CommentSection({ onClose }: CommentSectionProps) {
   };
 
   return (
-    <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-800">
-      <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">写评论</h2>
+    <div className="relative w-full max-w-md rounded-2xl bg-background p-6 shadow-xl dark:bg-background">
+      <h2 className="text-base font-semibold text-text dark:text-text">写评论</h2>
       <form onSubmit={handleSubmit} className="mt-4 space-y-4">
         <div>
-          <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
+          <label className="mb-1 block text-xs font-medium text-text-secondary dark:text-text-secondary">
             标题
           </label>
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            className="w-full rounded-xl border border-border bg-form px-3 py-2 text-sm text-text outline-none focus:border-button-primary dark:border-border dark:bg-form dark:text-text"
             placeholder="请输入标题"
             disabled={submitting}
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
+          <label className="mb-1 block text-xs font-medium text-text-secondary dark:text-text-secondary">
             内容
           </label>
           <textarea
             rows={4}
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            className="w-full rounded-xl border border-border bg-form px-3 py-2 text-sm text-text outline-none focus:border-button-primary dark:border-border dark:bg-form dark:text-text"
             placeholder="写下你的评论..."
             disabled={submitting}
           />
@@ -82,14 +82,14 @@ export default function CommentSection({ onClose }: CommentSectionProps) {
             type="button"
             onClick={onClose}
             disabled={submitting}
-            className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
+            className="rounded-full border border-border bg-background px-4 py-2 text-xs font-medium text-text-secondary hover:bg-background/80 disabled:opacity-60 dark:border-border dark:bg-background dark:text-text-secondary"
           >
             取消
           </button>
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-full bg-blue-500 px-4 py-2 text-xs font-medium text-white hover:bg-blue-500/90 disabled:opacity-60 dark:bg-blue-400 dark:text-slate-900"
+            className="rounded-full bg-button-primary px-4 py-2 text-xs font-medium text-button-primary-text hover:bg-button-primary/90 disabled:opacity-60 dark:bg-button-primary dark:text-button-primary-text"
           >
             {submitting ? "发送中…" : "发送"}
           </button>

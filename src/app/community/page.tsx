@@ -219,13 +219,13 @@ export default function CommunityPage( { onDelete }: CommunityPageProps) {
       <header className="mb-1">
         <div className="flex items-center justify-between gap-2">
           <div>
-            <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">公告板</h1>
-            <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">重奏与团建信息</p>
+            <h1 className="text-lg font-semibold text-text dark:text-text">公告板</h1>
+            <p className="mt-1 text-xs text-text-secondary dark:text-text-secondary">重奏与团建信息</p>
           </div>
           <button
             type="button"
             onClick={() => openPublish()}
-            className="rounded-full bg-blue-500 px-3 py-1 text-[11px] font-medium text-black shadow-sm hover:bg-blue-500/90 dark:bg-blue-400 dark:text-slate-900 dark:hover:bg-blue-400/90"
+            className="rounded-full bg-button-primary px-3 py-1 text-[11px] font-medium text-button-primary-text shadow-sm hover:bg-button-primary/90 dark:bg-button-primary dark:text-button-primary-text dark:hover:bg-button-primary/90"
           >
             发布公告
           </button>
@@ -244,7 +244,7 @@ export default function CommunityPage( { onDelete }: CommunityPageProps) {
 
       <section className="space-y-3">
         {loading && posts.length === 0 && (
-          <p className="py-6 text-center text-xs text-slate-600 dark:text-slate-400">
+          <p className="py-6 text-center text-xs text-text-secondary dark:text-text-secondary">
             正在加载…
           </p>
         )}
@@ -252,7 +252,7 @@ export default function CommunityPage( { onDelete }: CommunityPageProps) {
           postList.map((post) => (
             <article
               key={post.id}
-              className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3 shadow-[0_1px_4px_rgba(15,23,42,0.06)] dark:border-slate-700 dark:bg-slate-900/70"
+              className="rounded-2xl border border-border bg-background/70 p-3 shadow-[0_1px_4px_rgba(15,23,42,0.06)] dark:border-border dark:bg-background/70"
             >
               <button
                 type="button"
@@ -261,23 +261,23 @@ export default function CommunityPage( { onDelete }: CommunityPageProps) {
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
-                    <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                    <h2 className="text-sm font-semibold text-text dark:text-text">
                       {post.title}
                     </h2>
-                    <p className="mt-0.5 text-[11px] text-slate-600 dark:text-slate-400">
+                    <p className="mt-0.5 text-[11px] text-text-secondary dark:text-text-secondary">
                       {POST_TYPE_LABEL[post.type]}
                       {formatDateTime(post.created_at, "yyyy-MM-dd HH:mm") && ` · ${formatDateTime(post.created_at, "yyyy-MM-dd HH:mm")}`}
                     </p>
                     {post.type === "ensemble" &&
                       hasSectionText(post.missing_sections) && (
                       <div className="mt-2 flex flex-wrap gap-1.5">
-                        <span className="inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-600 dark:bg-blue-900 dark:text-blue-300">
+                        <span className="inline-flex rounded-full bg-tag px-2 py-0.5 text-[10px] font-bold text-tag dark:bg-tag dark:text-tag">
                           缺：{post.missing_sections!.trim()}
                         </span>
                       </div>
                     )}
                     {post.content != null && post.content.trim() !== "" && (
-                      <p className="mt-1 line-clamp-2 text-xs text-slate-600 dark:text-slate-400">
+                      <p className="mt-1 line-clamp-2 text-xs text-text-secondary dark:text-text-secondary">
                         {post.content}
                       </p>
                     )}
@@ -292,7 +292,7 @@ export default function CommunityPage( { onDelete }: CommunityPageProps) {
                       e.stopPropagation();
                       openPublish(post);
                     }}
-                    className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+                    className="text-text-secondary hover:text-text dark:text-text-secondary dark:hover:text-text"
                   >
                     编辑
                   </button>
@@ -302,7 +302,7 @@ export default function CommunityPage( { onDelete }: CommunityPageProps) {
                       e.stopPropagation();
                       void handleDelete(post.id);
                     }}
-                    className="text-slate-600 hover:text-red-500 dark:text-slate-400 dark:hover:text-red-400"
+                    className="text-text-secondary hover:text-error dark:text-text-secondary dark:hover:text-error"
                   >
                     删除
                   </button>
@@ -311,7 +311,7 @@ export default function CommunityPage( { onDelete }: CommunityPageProps) {
             </article>
           ))}
         {!loading && postList.length === 0 && (
-          <p className="py-8 text-center text-xs text-slate-600 dark:text-slate-400">
+          <p className="py-8 text-center text-xs text-text-secondary dark:text-text-secondary">
             暂无「{POST_TYPE_LABEL[view]}」公告。
           </p>
         )}
@@ -369,37 +369,37 @@ function DetailModal({
       onClose={onClose}
       className="max-h-[85vh] overflow-hidden flex flex-col"
     >
-      <p className="text-[11px] text-slate-600 dark:text-slate-400 flex-shrink-0">
+      <p className="text-[11px] text-text-secondary dark:text-text-secondary flex-shrink-0">
         {POST_TYPE_LABEL[post.type]} · {author}
       </p>
       {(showCurrent || showMissing) && (
         <div className="mt-2 flex flex-wrap gap-1.5 flex-shrink-0">
           {showCurrent && (
-            <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+            <span className="inline-flex rounded-full bg-background-secondary px-2 py-0.5 text-[10px] font-medium text-text-secondary dark:bg-background-secondary dark:text-text-secondary">
               已有：{post.current_sections!.trim()}
             </span>
           )}
           {showMissing && (
-            <span className="inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-600 dark:bg-blue-900 dark:text-blue-300">
+            <span className="inline-flex rounded-full bg-tag px-2 py-0.5 text-[10px] font-bold text-tag dark:bg-tag dark:text-tag">
               缺：{post.missing_sections!.trim()}
             </span>
           )}
         </div>
       )}
-      <div className="mt-2 overflow-y-auto flex-1 space-y-3 text-xs text-slate-600 dark:text-slate-400">
+      <div className="mt-2 overflow-y-auto flex-1 space-y-3 text-xs text-text-secondary dark:text-text-secondary">
         {post.content != null && post.content.trim() !== "" && (
           <p className="whitespace-pre-line leading-relaxed">{post.content}</p>
         )}
         {post.contact_info && (
-          <div className="rounded-2xl bg-slate-100 p-3 flex items-center justify-between gap-2 dark:bg-slate-800">
+          <div className="rounded-2xl bg-background-secondary p-3 flex items-center justify-between gap-2 dark:bg-background-secondary">
             <div>
-              <p className="text-[11px] font-medium text-slate-600 dark:text-slate-400">联系方式</p>
-              <p className="text-xs text-slate-900 dark:text-slate-100">{post.contact_info}</p>
+              <p className="text-[11px] font-medium text-text-secondary dark:text-text-secondary">联系方式</p>
+              <p className="text-xs text-text dark:text-text">{post.contact_info}</p>
             </div>
             <button
               type="button"
               onClick={copyContact}
-              className="relative z-10 cursor-pointer rounded-full bg-blue-500 px-3 py-1.5 text-[11px] font-medium text-white shrink-0 dark:bg-blue-400 dark:text-slate-900"
+              className="relative z-10 cursor-pointer rounded-full bg-button-primary px-3 py-1.5 text-[11px] font-medium text-button-primary-text shrink-0 dark:bg-button-primary dark:text-button-primary-text"
             >
               一键复制
             </button>
@@ -410,12 +410,12 @@ function DetailModal({
             <img
               src={post.image_url}
               alt="二维码或配图"
-              className="rounded-2xl border border-slate-200 max-w-full h-auto max-h-64 object-contain dark:border-slate-700"
+              className="rounded-2xl border border-border max-w-full h-auto max-h-64 object-contain dark:border-border"
             />
             <button
               type="button"
               onClick={() => onSaveQr(post.image_url!)}
-              className="rounded-full bg-slate-100 px-3 py-1.5 text-[11px] font-medium text-slate-600 hover:bg-slate-100/80 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-800/80"
+              className="rounded-full bg-background-secondary px-3 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-background-secondary/80 dark:bg-background-secondary dark:text-text-secondary dark:hover:bg-background-secondary/80"
             >
               保存二维码
             </button>
@@ -455,17 +455,17 @@ function PublishModal({
       <form onSubmit={onSubmit}>
         <div className="space-y-3 text-xs">
           <div className="space-y-1">
-            <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400">
+            <label className="block text-[11px] font-medium text-text-secondary dark:text-text-secondary">
               类型
             </label>
-            <div className="inline-flex rounded-full bg-slate-100 p-1 text-[11px] dark:bg-slate-800">
+            <div className="inline-flex rounded-full bg-background-secondary p-1 text-[11px] dark:bg-background-secondary">
               {(["ensemble", "gathering"] as PostType[]).map((t) => (
                 <button
                   key={t}
                   type="button"
                   onClick={() => setForm((f) => ({ ...f, type: t }))}
                   className={`min-w-[64px] rounded-full px-3 py-1 ${
-                    form.type === t ? "bg-blue-500 text-white dark:bg-blue-400 dark:text-slate-900" : "text-slate-600 dark:text-slate-400"
+                    form.type === t ? "bg-button-primary text-button-primary-text dark:bg-button-primary dark:text-button-primary-text" : "text-text-secondary dark:text-text-secondary"
                   }`}
                 >
                   {POST_TYPE_LABEL[t]}
@@ -474,33 +474,33 @@ function PublishModal({
             </div>
           </div>
           <div className="space-y-1">
-            <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400">
-              联系方式 <span className="text-red-500 dark:text-red-400">*</span>
+            <label className="block text-[11px] font-medium text-text-secondary dark:text-text-secondary">
+              联系方式 <span className="text-error dark:text-error">*</span>
             </label>
             <input
               type="text"
               value={form.contact_info}
               onChange={(e) => setForm((f) => ({ ...f, contact_info: e.target.value }))}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-900 outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+              className="w-full rounded-xl border border-border bg-form px-3 py-2 text-xs text-text outline-none focus:border-button-primary dark:border-border dark:bg-form dark:text-text"
               placeholder="微信号或手机号"
             />
           </div>
           <div className="space-y-1">
-            <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400">
+            <label className="block text-[11px] font-medium text-text-secondary dark:text-text-secondary">
               标题
             </label>
             <input
               type="text"
               value={form.title}
               onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-900 outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+              className="w-full rounded-xl border border-border bg-form px-3 py-2 text-xs text-text outline-none focus:border-button-primary dark:border-border dark:bg-form dark:text-text"
               placeholder="请输入标题"
             />
           </div>
           {form.type === "ensemble" && (
             <>
               <div className="space-y-1">
-                <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400">
+                <label className="block text-[11px] font-medium text-text-secondary dark:text-text-secondary">
                   已有声部
                 </label>
                 <input
@@ -509,12 +509,12 @@ function PublishModal({
                   onChange={(e) =>
                     setForm((f) => ({ ...f, current_sections: e.target.value }))
                   }
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-900 outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  className="w-full rounded-xl border border-border bg-form px-3 py-2 text-xs text-text outline-none focus:border-button-primary dark:border-border dark:bg-form dark:text-text"
                   placeholder="如：长笛、单簧管"
                 />
               </div>
               <div className="space-y-1">
-                <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400">
+                <label className="block text-[11px] font-medium text-text-secondary dark:text-text-secondary">
                   需要声部
                 </label>
                 <input
@@ -523,39 +523,39 @@ function PublishModal({
                   onChange={(e) =>
                     setForm((f) => ({ ...f, missing_sections: e.target.value }))
                   }
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-900 outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  className="w-full rounded-xl border border-border bg-form px-3 py-2 text-xs text-text outline-none focus:border-button-primary dark:border-border dark:bg-form dark:text-text"
                   placeholder="如：双簧管、大管"
                 />
               </div>
             </>
           )}
           <div className="space-y-1">
-            <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400">
+            <label className="block text-[11px] font-medium text-text-secondary dark:text-text-secondary">
               内容
             </label>
             <textarea
               value={form.content ?? ""}
               onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-900 outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+              className="w-full rounded-xl border border-border bg-form px-3 py-2 text-xs text-text outline-none focus:border-button-primary dark:border-border dark:bg-form dark:text-text"
               rows={4}
               placeholder="请输入内容"
             />
           </div>
           <div className="space-y-1">
-            <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400">
+            <label className="block text-[11px] font-medium text-text-secondary dark:text-text-secondary">
               图片（如微信二维码）
             </label>
             <input
               type="file"
               accept="image/*"
               onChange={onImageChange}
-              className="w-full text-[11px] text-slate-600 file:mr-2 file:rounded-full file:border-0 file:bg-slate-100 file:px-3 file:py-1 file:text-xs dark:text-slate-400 dark:file:bg-slate-800 dark:file:text-slate-400"
+              className="w-full text-[11px] text-text-secondary file:mr-2 file:rounded-full file:border-0 file:bg-background-secondary file:px-3 file:py-1 file:text-xs dark:text-text-secondary dark:file:bg-background-secondary dark:file:text-text-secondary"
             />
             {imagePreviewUrl && (
               <img
                 src={imagePreviewUrl}
                 alt="预览"
-                className="mt-2 rounded-2xl border border-slate-200 max-w-full h-auto max-h-32 object-contain dark:border-slate-700"
+                className="mt-2 rounded-2xl border border-border max-w-full h-auto max-h-32 object-contain dark:border-border"
               />
             )}
           </div>
@@ -565,14 +565,14 @@ function PublishModal({
             type="button"
             onClick={onClose}
             disabled={submitting}
-            className="rounded-full px-4 py-1.5 text-[11px] text-slate-600 dark:text-slate-400"
+            className="rounded-full px-4 py-1.5 text-[11px] text-text-secondary dark:text-text-secondary"
           >
             取消
           </button>
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-full bg-blue-500 px-4 py-1.5 text-[11px] font-medium text-white disabled:opacity-60 dark:bg-blue-400 dark:text-slate-900"
+            className="rounded-full bg-button-primary px-4 py-1.5 text-[11px] font-medium text-button-primary-text disabled:opacity-60 dark:bg-button-primary dark:text-button-primary-text"
           >
             {submitting ? "提交中…" : editId ? "保存" : "发布"}
           </button>

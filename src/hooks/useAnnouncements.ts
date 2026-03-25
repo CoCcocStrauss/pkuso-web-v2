@@ -11,6 +11,8 @@ import type { AnnouncementRow } from "@/lib/types";
 export function useAnnouncements() {
   const [announcement, setAnnouncement] = useState<AnnouncementRow | null>(null);
   const [announcementLoading, setAnnouncementLoading] = useState(false);
+  const [allAnnouncements, setAllAnnouncements] = useState<AnnouncementRow[]>([]);
+  const [allAnnouncementsLoading, setAllAnnouncementsLoading] = useState(false);
 
   /**
    * 获取最新的公告
@@ -34,6 +36,25 @@ export function useAnnouncements() {
   }, []);
 
   /**
+   * 获取所有历史公告
+   * 从数据库中获取所有公告记录，按创建时间倒序排列
+   */
+  const fetchAllAnnouncements = useCallback(async () => {
+    setAllAnnouncementsLoading(true);
+    const { data, error } = await supabase
+      .from("announcements")
+      .select("id, content, created_at")
+      .order("created_at", { ascending: false });
+    setAllAnnouncementsLoading(false);
+    if (error) {
+      console.warn("[Home] 加载历史公告失败：", error.message);
+      setAllAnnouncements([]);
+      return;
+    }
+    setAllAnnouncements(Array.isArray(data) ? data : []);
+  }, []);
+
+  /**
    * 删除公告
    * @param id 公告 ID
    * @returns 是否删除成功
@@ -52,8 +73,14 @@ export function useAnnouncements() {
     announcement,
     /** 公告加载状态 */
     announcementLoading,
+    /** 所有历史公告 */
+    allAnnouncements,
+    /** 所有历史公告加载状态 */
+    allAnnouncementsLoading,
     /** 获取最新公告的方法 */
     fetchLatestAnnouncement,
+    /** 获取所有历史公告的方法 */
+    fetchAllAnnouncements,
     /** 删除公告的方法 */
     deleteAnnouncement,
   };

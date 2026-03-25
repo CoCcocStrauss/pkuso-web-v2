@@ -98,7 +98,7 @@ export type PostRow = {
   /** 图片URL */
   image_url: string | null;
   /** 扩展：作者信息（从 profiles 映射而来） */
-  profiles: { full_name: string | null; instrument: string | null } | null;
+  profiles?: { full_name: string | null; instrument: string | null } | null;
 };
 
 /**
@@ -125,6 +125,27 @@ export type ProfileRow = {
   status: string | null;
 };
 
+export type PracticeSessionRow = {
+  id : string;
+  /** 创建时间 */
+  created_at: string;
+  /** 用户ID */
+  user_id: string;
+  /** 日期 */
+  date: string;
+  /** 开始时间 */
+  start_time: string | null;
+  /** 结束时间 */
+  end_time: string | null;
+  /** 标题 */
+  title: string | null;
+  /** 地址 */
+  location: string | null;
+  /** 扩展：作者信息（从 profiles 映射而来） */
+  profiles?: { full_name: string | null; 
+              instrument: string | null;  
+              email: string | null } | null;
+}
 
 /**
  * 用户类型（应用内部使用）

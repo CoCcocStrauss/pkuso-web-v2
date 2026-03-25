@@ -41,17 +41,17 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-[80vh] items-center justify-center">
       <div className="w-full max-w-sm">
-        <div className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="rounded-3xl border border-border bg-background p-5 shadow-sm dark:border-border dark:bg-background">
           <div className="mb-4 text-center">
-            <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">登录</h1>
-            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+            <h1 className="text-xl font-semibold text-text dark:text-text">登录</h1>
+            <p className="mt-1 text-xs text-text-secondary dark:text-text-secondary">
               登录后进入乐团系统
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-3">
             <div className="space-y-1">
-              <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400">
+              <label className="block text-[11px] font-medium text-text-secondary dark:text-text-secondary">
                 Email
               </label>
               <input
@@ -61,14 +61,14 @@ export default function LoginPage() {
                   setEmail(e.target.value);
                   setErrorMsg("");
                 }}
-                className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                className="w-full rounded-xl border border-border bg-form px-3 py-2 text-sm text-text outline-none focus:border-border dark:border-border dark:bg-form dark:text-text"
                 placeholder="name@example.com"
                 autoComplete="email"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400">
+              <label className="block text-[11px] font-medium text-text-secondary dark:text-text-secondary">
                 Password
               </label>
               <input
@@ -78,14 +78,14 @@ export default function LoginPage() {
                   setPassword(e.target.value);
                   setErrorMsg("");
                 }}
-                className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                className="w-full rounded-xl border border-border bg-form px-3 py-2 text-sm text-text outline-none focus:border-border dark:border-border dark:bg-form dark:text-text"
                 placeholder="请输入密码"
                 autoComplete="current-password"
               />
             </div>
 
             {errorMsg ? (
-              <div className="rounded-xl bg-red-50 px-3 py-2 text-center text-sm text-red-600 dark:bg-red-950 dark:text-red-400">
+              <div className="rounded-xl bg-error/20 px-3 py-2 text-center text-sm text-error dark:bg-error/20 dark:text-error">
                 {errorMsg}
               </div>
             ) : null}
@@ -99,15 +99,15 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-4 text-center text-xs text-zinc-500 dark:text-zinc-400">
+          <div className="mt-4 text-center text-xs text-text-secondary dark:text-text-secondary">
             还没有账号？{" "}
-            <Link href="/signup" className="font-medium text-zinc-900 dark:text-zinc-100">
+            <Link href="/signup" className="font-medium text-text dark:text-text">
               去注册
             </Link>
           </div>
 
           <div className="mt-4 text-center text-xs">
-            <Link href="/forgot-password" className="font-medium text-zinc-900 dark:text-zinc-100">
+            <Link href="/forgot-password" className="font-medium text-text dark:text-text">
               忘记密码？
             </Link>
           </div>

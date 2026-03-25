@@ -2,11 +2,10 @@
 
 import React from "react";
 import { useUser } from "@/context/UserContext";
-import "react-datepicker/dist/react-datepicker.css";
 import Modal from "@/components/ui/Modal";
 import { PublishRehearsalModal } from "../../../components/modal/PublishRehearsalModal";
 import { AttendanceManageModal } from "../../../components/modal/AttendanceManageModal";
-import { isRehearsalEnded, formatRehearsalTimeRange } from "@/lib/utils";
+import { isRehearsalEnded, formatRehearsalTimeRange, isDateInCurrentWeek } from "@/lib/utils";
 import { useRehearsals } from "@/hooks/useRehearsals";
 import { useAttendance } from "@/hooks/useAttendance";
 import type { RehearsalRow } from "@/lib/types";
@@ -14,6 +13,7 @@ import { RehearsalType, REHEARSAL_TYPE_LABEL } from "@/lib/enums";
 
 export function RehearsalSection() {
   const [currentType, setCurrentType] = React.useState<RehearsalType>(RehearsalType.FULL);
+  const [showOnlyThisWeek, setShowOnlyThisWeek] = React.useState(true); // 默认显示本周
   const { rehearsals, rehearsalsLoading, fetchRehearsals, deleteRehearsal } = useRehearsals();
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
   const [editingRehearsal, setEditingRehearsal] = React.useState<RehearsalRow | null>(null);
@@ -40,8 +40,15 @@ export function RehearsalSection() {
 
   const displayRehearsals = React.useMemo(() => {
     const targetType = currentType;
-    return rehearsals.filter((item) => item.type === targetType);
-  }, [currentType, rehearsals]);
+    let filtered = rehearsals.filter((item) => item.type === targetType);
+    
+    // 如果启用了本周过滤，只显示本周的排练
+    if (showOnlyThisWeek) {
+      filtered = filtered.filter((item) => isDateInCurrentWeek(item.start_time ?? null));
+    }
+    
+    return filtered;
+  }, [currentType, rehearsals, showOnlyThisWeek]);
 
   const handleOpenCreate = () => {
     if (!isAdmin) return;
@@ -67,11 +74,11 @@ export function RehearsalSection() {
 
     const success = await deleteRehearsal(id);
     if (!success) {
-      alert("删除失败，请稍后重试。");
+      alert("删除失败，请稍后重试");
       return;
     }
 
-    alert("已删除该排练日程。");
+    alert("已删除该排练日程");
     void fetchRehearsals();
   };
 
@@ -109,13 +116,13 @@ export function RehearsalSection() {
           ...prev,
           [rehearsal.id]: { status: "present" },
         }));
-        alert("签到成功！");
+        alert("签到成功");
       }
       return;
     }
 
     if (!rehearsal.sign_in_code) {
-      alert("本次合排未配置签到码，请联系管理员。");
+      alert("本次合排未配置签到码，请联系管理员");
       return;
     }
 
@@ -131,7 +138,7 @@ export function RehearsalSection() {
     if (codeSubmitting) return;
 
     if (!/^\d{4}$/.test(codeInput)) {
-      setCodeError("请输入 4 位数字签到码");
+      setCodeError("请输入4位数字签到码");
       return;
     }
 
@@ -149,7 +156,7 @@ export function RehearsalSection() {
         ...prev,
         [codeModalRehearsal.id]: { status: "present" },
       }));
-      alert("签到成功！");
+      alert("签到成功");
       setCodeModalRehearsal(null);
       setCodeInput("");
       setCodeError(null);
@@ -181,10 +188,10 @@ export function RehearsalSection() {
       <header className="mb-1">
         <div className="flex items-center justify-between gap-2">
           <div>
-            <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+            <h1 className="text-lg font-semibold text-text-light dark:text-text">
               本周排练日程
             </h1>
-            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="mt-1 text-xs text-text-light-secondary dark:text-text-secondary">
               查看乐团合排与分排安排
             </p>
           </div>
@@ -192,17 +199,17 @@ export function RehearsalSection() {
             <button
               type="button"
               onClick={handleOpenCreate}
-              className="rounded-full bg-zinc-900 px-2.5 py-1 text-[11px] font-medium text-white shadow-sm hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+              className="rounded-full bg-button-primary-light px-2.5 py-1 text-[11px] font-medium text-button-primary-text-light shadow-sm hover:bg-button-primary-light/90 dark:bg-button-primary dark:text-button-primary-text dark:hover:bg-button-primary/90"
             >
-              ➕ 添加排练
+              添加排练
             </button>
           )}
         </div>
-        <div className="mt-2 flex justify-start">
+        <div className="mt-2 flex items-center justify-between">
           <div
             role="tablist"
             aria-label="排练类型"
-            className="inline-flex rounded-full bg-zinc-100 p-1 text-xs dark:bg-zinc-800"
+            className="inline-flex rounded-full bg-background-light p-1 text-xs dark:bg-background-secondary"
           >
             <button
               type="button"
@@ -211,8 +218,8 @@ export function RehearsalSection() {
               onClick={() => setCurrentType(RehearsalType.FULL)}
               className={`min-w-[64px] rounded-full px-3 py-1 text-center transition-colors ${
                 currentType === RehearsalType.FULL
-                  ? "bg-zinc-900 text-white shadow-sm dark:bg-zinc-100 dark:text-zinc-900"
-                  : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-300"
+                  ? "bg-button-primary-light text-button-primary-text-light shadow-sm dark:bg-button-primary dark:text-button-primary-text"
+                  : "text-text-light-secondary hover:text-text-light dark:text-text-secondary dark:hover:text-text"
               }`}
             >
               合排
@@ -224,21 +231,33 @@ export function RehearsalSection() {
               onClick={() => setCurrentType(RehearsalType.SECTION)}
               className={`min-w-[64px] rounded-full px-3 py-1 text-center transition-colors ${
                 currentType === RehearsalType.SECTION
-                  ? "bg-zinc-900 text-white shadow-sm dark:bg-zinc-100 dark:text-zinc-900"
-                  : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-300"
+                  ? "bg-button-primary-light text-button-primary-text-light shadow-sm dark:bg-button-primary dark:text-button-primary-text"
+                  : "text-text-light-secondary hover:text-text-light dark:text-text-secondary dark:hover:text-text"
               }`}
             >
               分排
             </button>
           </div>
+          
+          {/* 本周过滤切换按钮 */}
+          <button
+            type="button"
+            onClick={() => setShowOnlyThisWeek(!showOnlyThisWeek)}
+            className={`inline-flex items-center rounded-full px-3 py-1 text-xs transition-colors ${
+              showOnlyThisWeek
+                ? "bg-accent-light text-white dark:bg-accent dark:text-white"
+                : "bg-background-light text-text-light-secondary dark:bg-background-secondary dark:text-text-secondary"
+            }`}
+          >
+            {showOnlyThisWeek ? "本周" : "全部"}
+          </button>
         </div>
       </header>
 
       <section className="space-y-3">
         {rehearsalsLoading && rehearsals.length === 0 && (
-          <p className="py-6 text-center text-xs text-zinc-400 dark:text-zinc-500">
-            正在加载日程…
-          </p>
+          <p className="py-6 text-center text-xs text-text-light-secondary dark:text-text-secondary">
+            正在加载日程         </p>
         )}
 
         {!rehearsalsLoading &&
@@ -250,35 +269,34 @@ export function RehearsalSection() {
             return (
               <article
                 key={item.id}
-                className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-3 shadow-[0_1px_4px_rgba(15,23,42,0.06)] dark:border-zinc-800 dark:bg-zinc-900/70"
+                className="rounded-2xl border border-border-light bg-card-light p-3 shadow-[0_1px_4px_rgba(15,23,42,0.06)] dark:border-border dark:bg-card"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="space-y-0.5 leading-tight">
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                    <p className="text-sm text-text-light-secondary dark:text-text-secondary">
                       {item.repertoire}
                       {item.type === "section" && item.target_section
                         ? ` · ${item.target_section}`
                         : null}
                     </p>
-                    <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+                    <h2 className="text-base font-semibold text-text-light dark:text-text">
                       {formatRehearsalTimeRange(item.start_time, item.end_time)}
                     </h2>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                    <p className="text-xs text-text-light-secondary dark:text-text-secondary">
                       地点：{item.location}
                       {item.type === "section" && item.target_section
-                        ? ` · 针对：${item.target_section}`
+                        ? ` · 针对{item.target_section}`
                         : null}
                     </p>
                   </div>
                   {isAdmin ? (
                     <div className="flex flex-col items-end gap-1 text-[11px]">
                       {isExpired && (
-                        <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
-                          已结束
-                        </span>
+                        <span className="rounded-full bg-background-light px-2 py-0.5 text-[10px] text-text-light-secondary dark:bg-background dark:text-text-secondary">
+                          已结束                      </span>
                       )}
                       {item.type === "full" && item.sign_in_code ? (
-                        <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
+                        <span className="text-[10px] text-text-light-secondary dark:text-text-secondary">
                           密码: {item.sign_in_code}
                         </span>
                       ) : null}
@@ -286,14 +304,14 @@ export function RehearsalSection() {
                         <button
                           type="button"
                           onClick={() => handleOpenEdit(item)}
-                          className="text-zinc-500 hover:text-blue-500 dark:text-zinc-400 dark:hover:text-blue-400"
+                          className="text-text-light-secondary hover:text-accent-light dark:text-text-secondary dark:hover:text-accent"
                         >
                           编辑
                         </button>
                         <button
                           type="button"
                           onClick={() => handleDelete(item.id)}
-                          className="text-zinc-400 hover:text-red-500 dark:text-zinc-500 dark:hover:text-red-400"
+                          className="text-text-light-secondary hover:text-error-light dark:text-text-secondary dark:hover:text-error"
                         >
                           删除
                         </button>
@@ -301,7 +319,7 @@ export function RehearsalSection() {
                       <button
                         type="button"
                         onClick={() => handleOpenManageAttendance(item)}
-                        className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-300"
+                        className="text-text-light-secondary hover:text-text-light dark:text-text-secondary dark:hover:text-text"
                       >
                         ⚙️ 管理出勤
                       </button>
@@ -309,18 +327,16 @@ export function RehearsalSection() {
                    ) : (
                     <div className="flex items-center">
                       {hasSigned ? (
-                        <span className="rounded-full bg-emerald-50 px-3 py-1 text-[11px] text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400">
-                          ✅ 已签到
-                        </span>
+                        <span className="rounded-full bg-success-light/10 px-3 py-1 text-[11px] text-success-light dark:bg-success/20 dark:text-success">
+                          已签到                        </span>
                       ) : isExpired ? (
-                        <span className="rounded-full bg-zinc-100 px-3 py-1 text-[11px] text-zinc-400 dark:bg-zinc-800 dark:text-zinc-500">
-                          已结束
-                        </span>
+                        <span className="rounded-full bg-background-light px-3 py-1 text-[11px] text-text-light-secondary dark:bg-background-secondary dark:text-text-secondary">
+                          已结束                        </span>
                       ) : (
                         <button
                           type="button"
                           onClick={() => handleMemberSign(item)}
-                          className="inline-flex items-center justify-center rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-medium text-zinc-700 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
+                          className="inline-flex items-center justify-center rounded-full border border-border-light bg-background-light px-3 py-1 text-xs font-medium text-text-light shadow-sm dark:border-border dark:bg-background-secondary dark:text-text"
                         >
                           签到
                         </button>
@@ -333,9 +349,8 @@ export function RehearsalSection() {
           })}
 
         {!rehearsalsLoading && displayRehearsals.length === 0 && (
-          <p className="py-8 text-center text-xs text-zinc-500 dark:text-zinc-400">
-            暂无「{REHEARSAL_TYPE_LABEL[currentType]}」安排。
-          </p>
+          <p className="py-8 text-center text-xs text-text-light-secondary dark:text-text-secondary">
+            暂无「{REHEARSAL_TYPE_LABEL[currentType]}」安排          </p>
         )}
       </section>
 
@@ -366,16 +381,16 @@ export function RehearsalSection() {
 
       {codeModalRehearsal && (
         <Modal
-          title="输入签到码"
+          title="输入签到密码"
           onClose={handleCloseCodeModal}
           disabled={codeSubmitting}
         >
-          <p className="mb-3 text-[11px] text-zinc-500 dark:text-zinc-400">
+          <p className="mb-3 text-[11px] text-text-light-secondary dark:text-text-secondary">
             本次排练：{codeModalRehearsal.repertoire}
           </p>
           <form onSubmit={handleCodeConfirm}>
             <div className="space-y-1 text-xs">
-              <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400">
+              <label className="block text-[11px] font-medium text-text-light-secondary dark:text-text-secondary">
                 四位数字签到码
               </label>
               <input
@@ -387,11 +402,11 @@ export function RehearsalSection() {
                   setCodeError(null);
                   setCodeInput(e.target.value);
                 }}
-                className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                className="w-full rounded-xl border border-border-light bg-form-light px-3 py-2 text-xs text-text-light outline-none focus:border-accent-light dark:border-border dark:bg-form dark:text-text dark:focus:border-accent"
                 placeholder="如：8848"
               />
               {codeError && (
-                <p className="text-[11px] text-red-500 dark:text-red-400">{codeError}</p>
+                <p className="text-[11px] text-error-light dark:text-error">{codeError}</p>
               )}
             </div>
             <div className="mt-4 flex items-center justify-end gap-2 text-xs">
@@ -399,16 +414,16 @@ export function RehearsalSection() {
                 type="button"
                 onClick={handleCloseCodeModal}
                 disabled={codeSubmitting}
-                className="rounded-full px-4 py-1.5 text-[11px] text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                className="rounded-full px-4 py-1.5 text-[11px] text-text-light-secondary hover:bg-background-light dark:text-text-secondary dark:hover:bg-background-secondary"
               >
                 取消
               </button>
               <button
                 type="submit"
                 disabled={codeSubmitting}
-                className="rounded-full bg-zinc-900 px-4 py-1.5 text-[11px] font-medium text-white shadow-sm hover:bg-zinc-800 disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                className="rounded-full bg-button-primary-light px-4 py-1.5 text-[11px] font-medium text-button-primary-text-light shadow-sm hover:bg-button-primary-light/90 disabled:opacity-60 dark:bg-button-primary dark:text-button-primary-text dark:hover:bg-button-primary/90"
               >
-                {codeSubmitting ? "确认中…" : "确认签到"}
+                {codeSubmitting ? "确认中..." : "确认签到"}
               </button>
             </div>
           </form>
@@ -417,3 +432,4 @@ export function RehearsalSection() {
     </div>
   );
 }
+

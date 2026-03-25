@@ -1,104 +1,57 @@
 @import "tailwindcss";
-
-
-@theme {
-  --font-sans: var(--font-geist-sans), sans-serif;
-  --font-mono: var(--font-geist-mono), monospace;
-  
-  /* 亮色调颜色 */
-  --color-background-light: #ffffff;
-  --color-text-light: #000000;
-  --color-text-light-secondary: #666666;
-  --color-border-light: #e5e5e5;
-  
-  /* 暗色调颜色 */
-  --color-background-dark: #121212;
-  --color-background-dark-secondary: #1e1e1e;
-  --color-text-dark: #ffffff;
-  --color-text-dark-secondary: #b0b0b0;
-  --color-border-dark: #333333;
-  
-  /* 提示色 */
-  --color-accent-light: #4a89dc;
-  --color-accent-dark: #3b7dd8;
-}
+@import "../styles/colors.css";
 
 /* 如果需要深色模式的 class 策略，添加以下内容 */
 @custom-variant dark (&:where(.dark, .dark *));
 
 body {
-  @apply bg-background-light text-text-light dark:bg-background-dark dark:text-text-dark;
-}
-
-/* 自定义颜色类 */
-.bg-background-light {
-  background-color: var(--color-background-light);
-}
-
-.text-text-light {
-  color: var(--color-text-light);
-}
-
-.text-text-light-secondary {
-  color: var(--color-text-light-secondary);
-}
-
-.border-border-light {
-  border-color: var(--color-border-light);
-}
-
-.dark .bg-background-dark {
-  background-color: var(--color-background-dark);
-}
-
-.dark .bg-background-dark-secondary {
-  background-color: var(--color-background-dark-secondary);
-}
-
-.dark .text-text-dark {
-  color: var(--color-text-dark);
-}
-
-.dark .text-text-dark-secondary {
-  color: var(--color-text-dark-secondary);
-}
-
-.dark .border-border-dark {
-  border-color: var(--color-border-dark);
-}
-
-/* 提示色类 */
-.bg-accent-light {
-  background-color: var(--color-accent-light);
-}
-
-.text-accent-light {
-  color: var(--color-accent-light);
-}
-
-.dark .bg-accent-dark {
-  background-color: var(--color-accent-dark);
-}
-
-.dark .text-accent-dark {
-  color: var(--color-accent-dark);
+  @apply bg-background text-text;
 }
 
 .pb-safe {
   padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);
 }
 
+/* 动画定义 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slide-in-up {
+  animation: slideInUp 0.3s ease-out;
+}
+
 /* react-datepicker 定制样式，融入移动端极简风格 */
 .react-datepicker-orchestra {
-  @apply rounded-2xl border border-border-light bg-background-light shadow-md text-xs dark:border-border-dark dark:bg-background-dark-secondary;
+  @apply rounded-2xl border border-border bg-background shadow-md text-xs dark:border-border dark:bg-background-secondary;
 }
 
 .react-datepicker-orchestra .react-datepicker__header {
-  @apply border-b border-border-light bg-background-light py-2 dark:border-border-dark dark:bg-background-dark;
+  @apply border-b border-border bg-background py-2 dark:border-border dark:bg-background-secondary;
 }
 
 .react-datepicker-orchestra .react-datepicker__current-month {
-  @apply text-xs font-medium text-text-light dark:text-text-dark;
+  @apply text-xs font-medium text-text;
 }
 
 .react-datepicker-orchestra .react-datepicker__day-name,
@@ -107,28 +60,27 @@ body {
 }
 
 .react-datepicker-orchestra .react-datepicker__day {
-  @apply rounded-full text-text-light-secondary hover:bg-background-light dark:text-text-dark-secondary dark:hover:bg-background-dark-secondary;
+  @apply rounded-full text-text-secondary hover:bg-background-secondary;
 }
 
 .react-datepicker-orchestra
   .react-datepicker__day--selected.react-datepicker__day--selected {
-  @apply bg-accent-light text-white hover:bg-accent-light dark:bg-accent-dark dark:text-text-dark dark:hover:bg-accent-dark;
+  @apply bg-accent text-white hover:bg-accent;
 }
 
 .react-datepicker-orchestra .react-datepicker__day--today {
-  @apply font-semibold text-text-light dark:text-text-dark;
+  @apply font-semibold text-text;
 }
 
 .react-datepicker-orchestra .react-datepicker__time-container {
-  @apply border-l border-border-light dark:border-border-dark;
+  @apply border-l border-border;
 }
 
 .react-datepicker-orchestra .react-datepicker__time-list-item {
-  @apply text-[11px] dark:text-text-dark-secondary;
+  @apply text-[11px] text-text-secondary;
 }
 
 .react-datepicker-orchestra
   .react-datepicker__time-list-item--selected.react-datepicker__time-list-item--selected {
-  @apply bg-accent-light text-white dark:bg-accent-dark dark:text-text-dark;
+  @apply bg-accent text-white;
 }
-

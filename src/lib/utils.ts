@@ -142,13 +142,13 @@ export function addDateTimeFormatter(key: string, formatter: (date: Date) => str
  * 示例：
  *   startValue = "2025-03-24T19:30:00.000Z"
  *   endValue = "2025-03-24T21:00:00.000Z"
- *   返回 "3月24日 周一 19:30 - 21:00"
+ *   返回 "3 月 24 日 周一 19:30 - 21:00"
  *
  * 如果 `startValue` 无效，则返回原始字符串（或 `null`/`undefined`）;
  * 如果 `endValue` 缺失或无效，则仅返回起始时间。
  *
- * @param {string | null | undefined} startValue 起始时间字符串（ISO 8601推荐）
- * @param {string | null | undefined} endValue 结束时间字符串（ISO 8601推荐，可选）
+ * @param {string | null | undefined} startValue 起始时间字符串（ISO 8601 推荐）
+ * @param {string | null | undefined} endValue 结束时间字符串（ISO 8601 推荐，可选）
  * @returns 友好的排练时间范围文本
  */
 export function formatRehearsalTimeRange(
@@ -160,7 +160,7 @@ export function formatRehearsalTimeRange(
   const start = new Date(startValue);
   if (Number.isNaN(start.getTime())) return String(startValue);
   
-  const startFormatted = formatDateTime(start, "MM月dd日 wd HH:mm");
+  const startFormatted = formatDateTime(start, "MM 月 dd 日 wd HH:mm");
   
   if (!endValue) return startFormatted;
   
@@ -170,4 +170,35 @@ export function formatRehearsalTimeRange(
   const endFormatted = formatDateTime(end, "HH:mm");
   
   return `${startFormatted} - ${endFormatted}`;
+}
+
+/**
+ * 判断给定日期是否在当前周内（严格按照周一到周日的周计算）
+ * @param date 日期字符串或 Date 对象
+ * @returns 是否在当前周内
+ */
+export function isDateInCurrentWeek(date: string | Date | null): boolean {
+  if (!date) return false;
+  
+  const targetDate = typeof date === "string" ? new Date(date) : date;
+  if (Number.isNaN(targetDate.getTime())) return false;
+  
+  const today = new Date();
+  
+  // 获取今天是周几（0 是周日，1-6 是周一到周六）
+  const currentDay = today.getDay();
+  
+  // 计算本周的周一（如果今天是周日，currentDay 为 0，需要特殊处理）
+  const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + mondayOffset);
+  monday.setHours(0, 0, 0, 0);
+  
+  // 计算本周的周日
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23, 59, 59, 999);
+  
+  // 判断目标日期是否在本周范围内
+  return targetDate >= monday && targetDate <= sunday;
 }

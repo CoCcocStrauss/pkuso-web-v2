@@ -74,25 +74,25 @@ export default function SettingsPage() {
         <button
           type="button"
           onClick={() => router.back()}
-          className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-background-light dark:hover:bg-background-dark"
+          className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-background-light dark:hover:bg-background"
         >
-          <ChevronLeft className="h-5 w-5 text-text-light-secondary dark:text-text-dark-secondary" />
+          <ChevronLeft className="h-5 w-5 text-text-light-secondary dark:text-text-secondary" />
         </button>
-        <h1 className="text-lg font-semibold text-text-light-primary dark:text-text-dark-primary">
+        <h1 className="text-lg font-semibold text-text-light-primary dark:text-text-primary">
           设置
         </h1>
       </div>
 
       <section className="space-y-2">
-        <div className="rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+        <div className="rounded-2xl border border-border bg-white dark:border-border dark:bg-background">
           <div className="flex items-center justify-between p-4">
             <div className="flex items-center gap-3">
               {theme === "dark" ? (
-                <Moon className="h-5 w-5 text-slate-600 dark:text-slate-400" />
+                <Moon className="h-5 w-5 text-text-secondary dark:text-text-secondary" />
               ) : (
-                <Sun className="h-5 w-5 text-slate-600 dark:text-slate-400" />
+                <Sun className="h-5 w-5 text-text-secondary dark:text-text-secondary" />
               )}
-              <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
+              <span className="text-sm font-medium text-text dark:text-text">
                 深色模式
               </span>
             </div>
@@ -100,11 +100,11 @@ export default function SettingsPage() {
               type="button"
               onClick={toggleTheme}
               className={`relative h-6 w-11 rounded-full transition-colors ${
-                theme === "dark" ? "bg-blue-500" : "bg-slate-100"
+                theme === "dark" ? "bg-button-primary" : "bg-background-secondary"
               }`}
             >
               <span
-                className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-background shadow transition-transform ${
                   theme === "dark" ? "translate-x-5" : "translate-x-0"
                 }`}
               />
@@ -114,32 +114,32 @@ export default function SettingsPage() {
       </section>
 
       <section className="space-y-2">
-        <p className="px-1 text-xs font-medium text-slate-600 dark:text-slate-400">
+        <p className="px-1 text-xs font-medium text-text-secondary dark:text-text-secondary">
           账户
         </p>
-        <div className="space-y-1 rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+        <div className="space-y-1 rounded-2xl border border-border bg-white dark:border-border dark:bg-background">
           <button
             type="button"
             onClick={() => setIsPwdModalOpen(true)}
-            className="flex w-full items-center justify-between p-4 text-left hover:bg-slate-50 dark:hover:bg-slate-700"
+            className="flex w-full items-center justify-between p-4 text-left hover:bg-background-secondary dark:hover:bg-background-secondary"
           >
-            <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
+            <span className="text-sm font-medium text-text dark:text-text">
               修改密码
             </span>
-            <span className="text-slate-600 dark:text-slate-400">🔒</span>
+            <span className="text-text-secondary dark:text-text-secondary">🔒</span>
           </button>
 
-          <div className="border-t border-slate-200 dark:border-slate-700" />
+          <div className="border-t border-border dark:border-border" />
 
           <button
             type="button"
             onClick={() => setIsCommentModalOpen(true)}
-            className="flex w-full items-center justify-between p-4 text-left hover:bg-slate-50 dark:hover:bg-slate-700"
+            className="flex w-full items-center justify-between p-4 text-left hover:bg-background-secondary dark:hover:bg-background-secondary"
           >
-            <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
+            <span className="text-sm font-medium text-text dark:text-text">
               意见反馈
             </span>
-            <MessageSquare className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+            <MessageSquare className="h-4 w-4 text-text-secondary dark:text-text-secondary" />
           </button>
         </div>
       </section>
@@ -148,7 +148,7 @@ export default function SettingsPage() {
         <button
           type="button"
           onClick={handleLogout}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-500 px-4 py-3 text-sm font-medium text-white dark:bg-red-600 dark:text-white"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-error px-4 py-3 text-sm font-medium text-white dark:bg-error dark:text-white"
         >
           <LogOut className="h-4 w-4" />
           <span>退出登录</span>
@@ -171,35 +171,35 @@ export default function SettingsPage() {
               setIsPwdModalOpen(false);
             }}
           />
-          <div className="relative w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-800">
+          <div className="relative w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl dark:bg-background">
             <h2
               id="update-password-title"
-              className="text-base font-semibold text-slate-900 dark:text-slate-100"
+              className="text-base font-semibold text-text dark:text-text"
             >
               修改登录密码
             </h2>
             <form onSubmit={handleUpdatePassword} className="mt-4 space-y-3">
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
+                <label className="mb-1 block text-xs font-medium text-text-secondary dark:text-text-secondary">
                   新密码
                 </label>
                 <input
                   type="password"
                   value={newPwd}
                   onChange={(e) => setNewPwd(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  className="w-full rounded-xl border border-border bg-form px-3 py-2 text-sm text-text outline-none focus:border-button-primary dark:border-border dark:bg-form dark:text-text"
                   placeholder="至少 6 位"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
+                <label className="mb-1 block text-xs font-medium text-text-secondary dark:text-text-secondary">
                   确认新密码
                 </label>
                 <input
                   type="password"
                   value={confirmPwd}
                   onChange={(e) => setConfirmPwd(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  className="w-full rounded-xl border border-border bg-form px-3 py-2 text-sm text-text outline-none focus:border-button-primary dark:border-border dark:bg-form dark:text-text"
                   placeholder="再次输入新密码"
                 />
               </div>
@@ -211,14 +211,14 @@ export default function SettingsPage() {
                     if (isUpdatingPwd) return;
                     setIsPwdModalOpen(false);
                   }}
-                  className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
+                  className="rounded-full border border-border bg-background px-4 py-2 text-xs font-medium text-text-secondary hover:bg-background-secondary disabled:opacity-60 dark:border-border dark:bg-background dark:text-text-secondary"
                 >
                   取消
                 </button>
                 <button
                   type="submit"
                   disabled={isUpdatingPwd}
-                  className="rounded-full bg-blue-500 px-4 py-2 text-xs font-medium text-white hover:bg-blue-500/90 disabled:opacity-60 dark:bg-blue-400 dark:text-slate-900"
+                  className="rounded-full bg-button-primary px-4 py-2 text-xs font-medium text-button-primary-text hover:bg-button-primary/90 disabled:opacity-60 dark:bg-button-primary dark:text-button-primary-text"
                 >
                   {isUpdatingPwd ? "提交中..." : "确认修改"}
                 </button>

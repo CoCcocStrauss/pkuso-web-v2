@@ -89,17 +89,17 @@ export default function SignupPage() {
   return (
     <div className="flex min-h-[80vh] items-center justify-center">
       <div className="w-full max-w-sm">
-        <div className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="rounded-3xl border border-border bg-background p-5 shadow-sm dark:border-border dark:bg-background">
           <div className="mb-4 text-center">
-            <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">创建账号</h1>
-            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+            <h1 className="text-xl font-semibold text-text dark:text-text">创建账号</h1>
+            <p className="mt-1 text-xs text-text-secondary dark:text-text-secondary">
               注册后需等待管理员审核通过
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-3">
             <div className="space-y-1">
-              <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400">
+              <label className="block text-[11px] font-medium text-text-secondary dark:text-text-secondary">
                 乐团邀请码 (Invitation Code)
               </label>
               <input
@@ -108,14 +108,14 @@ export default function SignupPage() {
                   setInvitationCode(e.target.value);
                   setErrorMsg("");
                 }}
-                className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                className="w-full rounded-xl border border-border bg-form px-3 py-2 text-sm text-text outline-none focus:border-border dark:border-border dark:bg-form dark:text-text"
                 placeholder="请输入乐团邀请码"
                 autoComplete="off"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400">
+              <label className="block text-[11px] font-medium text-text-secondary dark:text-text-secondary">
                 邮箱
               </label>
               <input
@@ -125,14 +125,14 @@ export default function SignupPage() {
                   setEmail(e.target.value);
                   setErrorMsg("");
                 }}
-                className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                className="w-full rounded-xl border border-border bg-form px-3 py-2 text-sm text-text outline-none focus:border-border dark:border-border dark:bg-form dark:text-text"
                 placeholder="name@example.com"
                 autoComplete="email"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400">
+              <label className="block text-[11px] font-medium text-text-secondary dark:text-text-secondary">
                 密码
               </label>
               <input
@@ -142,14 +142,14 @@ export default function SignupPage() {
                   setPassword(e.target.value);
                   setErrorMsg("");
                 }}
-                className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                className="w-full rounded-xl border border-border bg-form px-3 py-2 text-sm text-text outline-none focus:border-border dark:border-border dark:bg-form dark:text-text"
                 placeholder="至少 6 位"
                 autoComplete="new-password"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400">
+              <label className="block text-[11px] font-medium text-text-secondary dark:text-text-secondary">
                 真实姓名
               </label>
               <input
@@ -158,14 +158,14 @@ export default function SignupPage() {
                   setFullName(e.target.value);
                   setErrorMsg("");
                 }}
-                className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                className="w-full rounded-xl border border-border bg-form px-3 py-2 text-sm text-text outline-none focus:border-border dark:border-border dark:bg-form dark:text-text"
                 placeholder="请填写真实姓名"
                 autoComplete="name"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400">
+              <label className="block text-[11px] font-medium text-text-secondary dark:text-text-secondary">
                 所属声部
               </label>
               <select
@@ -174,7 +174,7 @@ export default function SignupPage() {
                   setInstrument(e.target.value as any);
                   setErrorMsg("");
                 }}
-                className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                className="w-full rounded-xl border border-border bg-form px-3 py-2 text-sm text-text outline-none focus:border-border dark:border-border dark:bg-form dark:text-text"
               >
                 <option value="" disabled>
                   请选择声部
@@ -188,7 +188,7 @@ export default function SignupPage() {
             </div>
 
             <div className="space-y-1">
-              <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400">
+              <label className="block text-[11px] font-medium text-text-secondary dark:text-text-secondary">
                 学院
               </label>
               <input
@@ -197,14 +197,14 @@ export default function SignupPage() {
                   setCollege(e.target.value);
                   setErrorMsg("");
                 }}
-                className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                className="w-full rounded-xl border border-border bg-form px-3 py-2 text-sm text-text outline-none focus:border-border dark:border-border dark:bg-form dark:text-text"
                 placeholder="例如：经济学院"
                 autoComplete="organization"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400">
+              <label className="block text-[11px] font-medium text-text-secondary dark:text-text-secondary">
                 入团时间
               </label>
               <input
@@ -213,13 +213,13 @@ export default function SignupPage() {
                   setJoinDate(e.target.value);
                   setErrorMsg("");
                 }}
-                className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-                placeholder="例如：2024秋"
+                className="w-full rounded-xl border border-border bg-form px-3 py-2 text-sm text-text outline-none focus:border-border dark:border-border dark:bg-form dark:text-text"
+                placeholder="例如：2024 秋"
               />
             </div>
 
             {errorMsg ? (
-              <div className="rounded-xl bg-red-50 px-3 py-2 text-center text-sm text-red-600 dark:bg-red-950 dark:text-red-400">
+              <div className="rounded-xl bg-error/20 px-3 py-2 text-center text-sm text-error dark:bg-error/20 dark:text-error">
                 {errorMsg}
               </div>
             ) : null}
@@ -227,15 +227,15 @@ export default function SignupPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="mt-1 flex w-full items-center justify-center rounded-2xl bg-zinc-900 px-4 py-3 text-sm font-medium text-white shadow-md hover:bg-zinc-800 disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+              className="mt-1 flex w-full items-center justify-center rounded-2xl bg-button-primary px-4 py-3 text-sm font-medium text-button-primary-text shadow-md hover:bg-button-primary/90 disabled:opacity-60 dark:bg-button-primary dark:text-button-primary-text dark:hover:bg-button-primary/90"
             >
               {submitting ? "注册中…" : "注册"}
             </button>
           </form>
 
-          <div className="mt-4 text-center text-xs text-zinc-500 dark:text-zinc-400">
+          <div className="mt-4 text-center text-xs text-text-secondary dark:text-text-secondary">
             已有账号？{" "}
-            <Link href="/login" className="font-medium text-zinc-900 dark:text-zinc-100">
+            <Link href="/login" className="font-medium text-text dark:text-text">
               去登录
             </Link>
           </div>
