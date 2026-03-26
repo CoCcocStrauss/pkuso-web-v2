@@ -4,16 +4,7 @@ import React from "react";
 
 export type UserRole = "admin" | "member";
 
-export type User = {
-  id: string;
-  name: string;
-  role: UserRole;
-  section: string;
-  grade?: string;
-  department?: string;
-  status?: string;
-  email?: string;
-};
+import { User } from "@/lib/types"
 
 type UserContextValue = {
   user: User | null;

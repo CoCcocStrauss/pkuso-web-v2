@@ -12,6 +12,7 @@ import type { RehearsalRow } from "./types";
  * @param instrument 乐器名称
  * @returns 分组名称，如果不在标准乐器列表中则返回"其他"
  */
+
 export function instrumentGroupKey(instrument: string | null): string {
   if (!instrument) return OTHER_GROUP;
   const trimmed = instrument.trim();
@@ -22,105 +23,30 @@ export function instrumentGroupKey(instrument: string | null): string {
 }
 
 /**
- * 判断是否为全团合排
- * @param r 排练记录
- * @returns 是否为全团合排
- */
-export function isFullRehearsal(r: RehearsalRow): boolean {
-  const t = (r.title ?? "").trim();
-  if (t === "全团合排" || t.includes("合排")) return true;
-  if (isSectionRehearsal(r)) return false;
-  return true;
-}
-
-/**
- * 判断是否为声部分排
- * @param r 排练记录
- * @returns 是否为声部分排
- */
-export function isSectionRehearsal(r: RehearsalRow): boolean {
-  const t = (r.title ?? "").trim();
-  return t === "声部分排" || t.includes("分排");
-}
-
-/**
- * 格式化日期为 MM-DD 格式
- * @param date 日期字符串 (yyyy-mm-dd)
- * @returns 格式化后的日期字符串 (MM-DD)，如果无效则返回"—"
- */
-export function formatDateMMDD(date: string | null): string {
-  if (!date || date.length < 10) return "—";
-  const parts = date.split("-");
-  if (parts.length >= 3) return `${parts[1]}-${parts[2]}`;
-  return date;
-}
-
-/**
- * 格式化日期为长格式："3月10日 周二 19:30"
- * @param date 日期字符串 (yyyy-mm-dd)
- * @param time 时间字符串
- * @returns 格式化后的日期时间字符串
- */
-export function formatDateLong(date: string | null, time: string | null): string {
-  if (!date || date.length < 10) return "—";
-  const [y, m, d] = date.split("-").map(Number);
-  if (Number.isNaN(m) || Number.isNaN(d)) return "—";
-  const day = new Date(y, m - 1, d).getDay();
-  const timeStr = (time ?? "").trim() || "—";
-  return `${m}月${d}日 ${WEEKDAY[day]} ${timeStr}`;
-}
-
-/**
- * 日程卡片标题格式化：月-日 时间（与社区卡片对齐）
- * @param date 日期字符串 (yyyy-mm-dd)
- * @param timeRange 时间范围字符串
- * @returns 格式化后的标题字符串
- */
-export function formatDateTitle(date: string | null, timeRange: string): string {
-  if (!date || date.length < 10) return "—";
-  const [y, m, d] = date.split("-").map(Number);
-  if (Number.isNaN(m) || Number.isNaN(d)) return "—";
-  const timeStr = (timeRange ?? "").trim() || "—";
-  return `${m}-${d} ${timeStr}`;
-}
-
-/**
  * 判断排练是否已结束
  * 优先使用结束时间，否则使用开始时间+30分钟作为结束时间
- * @param date 排练日期
  * @param endTime 结束时间
- * @param startTimeFallback 开始时间（作为备选）
  * @returns 是否已结束
  */
 export function isRehearsalEnded(
-  date: string | null,
   endTime: string | null | undefined,
-  startTimeFallback?: string | null,
 ): boolean {
-  if (!date || date.length < 10) return true;
-  const [y, m, d] = date.split("-").map(Number);
-  const timeStr = (endTime ?? "").trim() || (startTimeFallback ?? "").trim();
-  if (!timeStr) return false;
-  const [hh = 0, mm = 0] = timeStr.split(":").map(Number);
-  const end = endTime
-    ? new Date(y, m - 1, d, hh, mm, 0)
-    : new Date(y, m - 1, d, hh, mm + 30, 0);
+  const today = new Date();
+  const end = endTime ? new Date(endTime) : new Date(today.getTime() + 30 * 60 * 1000);
   return Date.now() > end.getTime();
 }
 
 /**
- * 格式化帖子日期
- * @param createdAt 创建时间
- * @returns 格式化后的日期字符串 (yyyy-MM-DD)
+ * 格式化公告作者与声部文本
+ * @param post PostRow
+ * @returns 例如："张三 · 小提琴" 或 "未知"
  */
-export function formatPostDate(createdAt: string | null | undefined): string {
-  if (!createdAt) return "";
-  const d = new Date(createdAt);
-  if (Number.isNaN(d.getTime())) return "";
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
+export function formatPostAuthorLabel(post: import("./types").PostRow): string {
+  const u = post.profiles;
+  if (u?.full_name) {
+    return `${u.full_name}${u.instrument ? ` · ${u.instrument}` : ""}`;
+  }
+  return "未知";
 }
 
 /**
@@ -133,19 +59,146 @@ export function hasSectionText(s: string | null | undefined): boolean {
 }
 
 /**
- * 格式化时间
- * @param s 时间字符串或日期对象
- * @returns 格式化后的时间字符串
+ * 自定义日期时间格式化函数
+ * 支持的格式占位符：
+ * - yyyy: 四位年份
+ * - MM: 两位月份
+ * - dd: 两位日期
+ * - HH: 24小时制小时
+ * - hh: 12小时制小时
+ * - mm: 两位分钟
+ * - ss: 两位秒数
+ * - wd: 周几（中文）
+ * - Wd: 周几（英文缩写）
+ * 
+ * @param dateTime 日期时间字符串或Date对象
+ * @param format 格式字符串
+ * @returns 格式化后的日期时间字符串
  */
-export function formatTime(s: string | null) {
-  if (!s) return "—";
-  const d = new Date(s);
-  if (Number.isNaN(d.getTime())) return s;
-  return new Intl.DateTimeFormat("zh-CN", {
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).format(d);
+export function formatDateTime(dateTime: string | Date | null, format: string): string {
+  if (!dateTime) return "—";
+  
+  const d = typeof dateTime === "string" ? new Date(dateTime) : dateTime;
+  if (Number.isNaN(d.getTime())) return typeof dateTime === "string" ? dateTime : "—";
+  
+  const formatters: Record<string, () => string> = {
+    yyyy: () => String(d.getFullYear()),
+    MM: () => String(d.getMonth() + 1).padStart(2, "0"),
+    dd: () => String(d.getDate()).padStart(2, "0"),
+    HH: () => String(d.getHours()).padStart(2, "0"),
+    hh: () => String((d.getHours() % 12) || 12).padStart(2, "0"),
+    mm: () => String(d.getMinutes()).padStart(2, "0"),
+    ss: () => String(d.getSeconds()).padStart(2, "0"),
+    wd: () => ["周日", "周一", "周二", "周三", "周四", "周五", "周六"][d.getDay()],
+    Wd: () => ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d.getDay()]
+  };
+  
+  let result = format;
+  for (const [key, formatter] of Object.entries(formatters)) {
+    result = result.replace(new RegExp(key, "g"), formatter);
+  }
+  
+  return result;
+}
+
+/**
+ * 添加自定义日期时间格式化器
+ * @param key 格式占位符（如 "wd"）
+ * @param formatter 格式化函数
+ * @returns 新的格式化函数，包含自定义格式化器
+ */
+export function addDateTimeFormatter(key: string, formatter: (date: Date) => string) {
+  return (dateTime: string | Date | null, format: string): string => {
+    if (!dateTime) return "—";
+    
+    const d = typeof dateTime === "string" ? new Date(dateTime) : dateTime;
+    if (Number.isNaN(d.getTime())) return typeof dateTime === "string" ? dateTime : "—";
+    
+    const formatters: Record<string, () => string> = {
+      yyyy: () => String(d.getFullYear()),
+      MM: () => String(d.getMonth() + 1).padStart(2, "0"),
+      dd: () => String(d.getDate()).padStart(2, "0"),
+      HH: () => String(d.getHours()).padStart(2, "0"),
+      hh: () => String((d.getHours() % 12) || 12).padStart(2, "0"),
+      mm: () => String(d.getMinutes()).padStart(2, "0"),
+      ss: () => String(d.getSeconds()).padStart(2, "0"),
+      wd: () => ["周日", "周一", "周二", "周三", "周四", "周五", "周六"][d.getDay()],
+      Wd: () => ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d.getDay()],
+      [key]: () => formatter(d)
+    };
+    
+    let result = format;
+    for (const [k, f] of Object.entries(formatters)) {
+      result = result.replace(new RegExp(k, "g"), f);
+    }
+    
+    return result;
+  };
+}
+
+/**
+ * 将排练起止时间格式化为「月日 周几 起始 - 结束」的友好展示字符串。
+ *
+ * 示例：
+ *   startValue = "2025-03-24T19:30:00.000Z"
+ *   endValue = "2025-03-24T21:00:00.000Z"
+ *   返回 "3 月 24 日 周一 19:30 - 21:00"
+ *
+ * 如果 `startValue` 无效，则返回原始字符串（或 `null`/`undefined`）;
+ * 如果 `endValue` 缺失或无效，则仅返回起始时间。
+ *
+ * @param {string | null | undefined} startValue 起始时间字符串（ISO 8601 推荐）
+ * @param {string | null | undefined} endValue 结束时间字符串（ISO 8601 推荐，可选）
+ * @returns 友好的排练时间范围文本
+ */
+export function formatRehearsalTimeRange(
+  startValue: string | null | undefined, 
+  endValue: string | null | undefined
+): string {
+  if (!startValue) return "—";
+  
+  const start = new Date(startValue);
+  if (Number.isNaN(start.getTime())) return String(startValue);
+  
+  const startFormatted = formatDateTime(start, "MM 月 dd 日 wd HH:mm");
+  
+  if (!endValue) return startFormatted;
+  
+  const end = new Date(endValue);
+  if (Number.isNaN(end.getTime())) return startFormatted;
+  
+  const endFormatted = formatDateTime(end, "HH:mm");
+  
+  return `${startFormatted} - ${endFormatted}`;
+}
+
+/**
+ * 判断给定日期是否在当前周内（严格按照周一到周日的周计算）
+ * @param date 日期字符串或 Date 对象
+ * @returns 是否在当前周内
+ */
+export function isDateInCurrentWeek(date: string | Date | null): boolean {
+  if (!date) return false;
+  
+  const targetDate = typeof date === "string" ? new Date(date) : date;
+  if (Number.isNaN(targetDate.getTime())) return false;
+  
+  const today = new Date();
+  
+  // 获取今天是周几（0 是周日，1-6 是周一到周六）
+  const currentDay = today.getDay();
+  
+  // 计算本周的周一（如果今天是周日，currentDay 为 0，需要特殊处理）
+  const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + mondayOffset);
+  monday.setHours(0, 0, 0, 0);
+  
+  // 计算本周的周日
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23, 59, 59, 999);
+  
+  // 判断目标日期是否在本周范围内
+  return targetDate >= monday && targetDate <= sunday;
 }

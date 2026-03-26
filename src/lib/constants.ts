@@ -45,18 +45,10 @@ export const OTHER_GROUP = "其他";
 export const WEEKDAY = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
 
 /**
- * 排练类型常量
- */
-/** 全团合排 */
-export const REHEARSAL_TYPE_FULL = "全团合排";
-/** 声部分排 */
-export const REHEARSAL_TYPE_SECTION = "声部分排";
-
-/**
  * 帖子类型标签映射
  * 用于UI显示
  */
-export const TYPE_LABEL: Record<import("./types").PostType, string> = {
+export const TYPE_LABEL: Record<import("./enums").PostType, string> = {
   ensemble: "重奏",
   gathering: "团建",
 };

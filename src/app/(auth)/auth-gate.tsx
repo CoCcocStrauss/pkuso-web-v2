@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useUser } from "@/context/UserContext";
 import { TabBar } from "@/components/tab-bar";
 import { supabase } from "@/lib/supabase";
+import { User } from "@/lib/types";
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const { user, login, logout } = useUser();
@@ -118,12 +119,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
       // 将 profile 写回全局状态，兼容现有页面使用 useUser()
       login({
-        id: sessionUserId,
-        name: (data?.full_name as string) ?? "未命名用户",
-        role: ((data?.role as any) ?? "member") as any,
-        section: (data?.instrument as string) ?? "",
-        status: (data?.status as string) ?? undefined,
-        email: (data?.email as string) ?? undefined,
+        ...data as User
       });
 
       setProfileLoading(false);
@@ -146,39 +142,39 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen flex justify-center">
-      <div className="flex min-h-screen w-full max-w-md flex-col bg-white shadow-lg">
+      <div className="flex min-h-screen w-full max-w-md flex-col shadow-lg dark:shadow-md">
         <main
           className={`flex-1 overflow-y-auto px-4 pt-4 ${
             isAuthPage ? "pb-4" : "pb-20"
           }`}
         >
           {sessionLoading ? (
-            <div className="flex h-full items-center justify-center text-xs text-zinc-400">
+            <div className="flex h-full items-center justify-center text-xs text-text-secondary dark:text-text-secondary">
               正在检查登录状态…
             </div>
           ) : (!sessionUserId && !isAuthPage) ? (
-            <div className="flex h-full items-center justify-center text-xs text-zinc-400">
+            <div className="flex h-full items-center justify-center text-xs text-text-secondary dark:text-text-secondary">
               正在前往登录页…
             </div>
           ) : (sessionUserId && profileLoading && !isAuthPage) ? (
-            <div className="flex h-full items-center justify-center text-xs text-zinc-400">
+            <div className="flex h-full items-center justify-center text-xs text-text-secondary dark:text-text-secondary">
               正在加载账户信息…
             </div>
           ) : (sessionUserId && profileErrorMsg && !isAuthPage) ? (
             <div className="flex min-h-[70vh] flex-col items-center justify-center px-4 text-center">
-              <h1 className="text-lg font-semibold text-zinc-900">
+              <h1 className="text-lg font-semibold text-text-light-primary dark:text-text-primary">
                 账户信息异常
               </h1>
-              <p className="mt-3 max-w-sm text-left text-sm leading-relaxed text-red-600">
+              <p className="mt-3 max-w-sm text-left text-sm leading-relaxed text-red-500 dark:text-red-400">
                 {profileErrorMsg}
               </p>
-              <p className="mt-2 text-xs text-zinc-500">
+              <p className="mt-2 text-xs text-text-light-secondary dark:text-text-secondary">
                 请打开浏览器控制台查看 [AuthGate] 的详细日志（session.user.id、查询结果、error）。
               </p>
               <button
                 type="button"
                 onClick={handleLogout}
-                className="mt-6 rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-zinc-800"
+                className="mt-6 rounded-full bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-primary/90 dark:bg-primary dark:text-background dark:hover:bg-primary/90"
               >
                 退出登录
               </button>
@@ -186,16 +182,16 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           ) : (sessionUserId && isPending && !isAuthPage) ? (
             <div className="flex min-h-[70vh] flex-col items-center justify-center text-center">
               <div className="text-5xl">⏳</div>
-              <h1 className="mt-4 text-lg font-semibold text-zinc-900">
+              <h1 className="mt-4 text-lg font-semibold text-text dark:text-text">
                 账号审核中...
               </h1>
-              <p className="mt-2 max-w-xs text-sm text-zinc-500">
+              <p className="mt-2 max-w-xs text-sm text-text-secondary dark:text-text-secondary">
                 请等待管理员审批后访问乐团系统
               </p>
               <button
                 type="button"
                 onClick={handleLogout}
-                className="mt-6 rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-zinc-800"
+                className="mt-6 rounded-full bg-button-primary px-4 py-2 text-sm font-medium text-button-primary-text shadow-sm hover:bg-button-primary/90 dark:bg-button-primary dark:text-button-primary-text dark:hover:bg-button-primary/90"
               >
                 退出登录
               </button>
@@ -203,16 +199,16 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           ) : (sessionUserId && !isApproved && !isAuthPage) ? (
             <div className="flex min-h-[70vh] flex-col items-center justify-center text-center">
               <div className="text-5xl">⏳</div>
-              <h1 className="mt-4 text-lg font-semibold text-zinc-900">
+              <h1 className="mt-4 text-lg font-semibold text-text dark:text-text">
                 账号审核中...
               </h1>
-              <p className="mt-2 max-w-xs text-sm text-zinc-500">
+              <p className="mt-2 max-w-xs text-sm text-text-secondary dark:text-text-secondary">
                 请等待管理员审批后访问乐团系统
               </p>
               <button
                 type="button"
                 onClick={handleLogout}
-                className="mt-6 rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-zinc-800"
+                className="mt-6 rounded-full bg-button-primary px-4 py-2 text-sm font-medium text-button-primary-text shadow-sm hover:bg-button-primary/90 dark:bg-button-primary dark:text-button-primary-text dark:hover:bg-button-primary/90"
               >
                 退出登录
               </button>

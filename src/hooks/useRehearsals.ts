@@ -20,10 +20,12 @@ export function useRehearsals() {
     setRehearsalsLoading(true);
     const { data, error } = await supabase
       .from("rehearsals")
-      .select("id, title, date, start_time, end_time, location, repertoire, created_at")
+      .select("id, title, date, start_time, end_time, location, repertoire, created_at, type, sign_in_code")
       .order("date", { ascending: true })
       .order("start_time", { ascending: true });
     setRehearsalsLoading(false);
+
+    console.log("[useRehearsals] 获取排练数据：", data, error);
 
     if (error) {
       console.warn("[Home] 加载排练日程失败：", error.message);
@@ -31,7 +33,21 @@ export function useRehearsals() {
       return;
     }
 
-    setRehearsals((data as any[]) as RehearsalRow[]);
+    setRehearsals((data as RehearsalRow[]) || []);
+  }, []);
+
+  /**
+   * 删除排练
+   * @param id 排练 ID
+   * @returns 是否删除成功
+   */
+  const deleteRehearsal = useCallback(async (id: string): Promise<boolean> => {
+    const { error } = await supabase.from("rehearsals").delete().eq("id", id);
+    if (error) {
+      console.warn("[useRehearsals] 删除排练失败：", error.message);
+      return false;
+    }
+    return true;
   }, []);
 
   return {
@@ -41,5 +57,7 @@ export function useRehearsals() {
     rehearsalsLoading,
     /** 获取排练数据的方法 */
     fetchRehearsals,
+    /** 删除排练的方法 */
+    deleteRehearsal,
   };
 }

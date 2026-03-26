@@ -1,0 +1,223 @@
+/* 颜色配置文件 - 使用 Tailwind CSS v4 的 @theme 指令 */
+
+@theme 
+.root {
+  /* 亮色模式颜色 - 背景色 */
+  --color-background: #ffffff;
+  --color-background-secondary: #f8fafc;
+  
+  /* 亮色模式颜色 - 文本色 */
+  --color-text: #000000;
+  --color-text-secondary: #666666;
+  
+  /* 亮色模式颜色 - 边框色 */
+  --color-border: #e5e5e5;
+  
+  /* 亮色模式颜色 - 强调色 */
+  --color-accent: #4a89dc;
+  --color-accent-secondary: #3b82f6;
+  
+  /* 亮色模式颜色 - 状态色 */
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  
+  /* 亮色模式颜色 - 卡片色 */
+  --color-card: #f8fafc;
+  
+  /* 亮色模式颜色 - 标签色 */
+  --color-tag-background: #dbeafe;
+  --color-tag-text: #2563eb;
+  
+  /* 亮色模式颜色 - 按钮色 */
+  --color-button-primary: #3b82f6;
+  --color-button-primary-text: #000000;
+  --color-button-secondary: #f8fafc;
+  --color-button-secondary-text: #666666;
+  
+  /* 亮色模式颜色 - 表单色 */
+  --color-form-background: #f8fafc;
+  --color-form-border: #e5e7eb;
+  
+  /* 预约块颜色 - 亮色模式使用鲜明的彩色背景（不透明） */
+  --color-session-1: #ff6b6b;  /* 红色 */
+  --color-session-2: #4ecdc4;  /* 青色 */
+  --color-session-3: #45b7d1;  /* 蓝色 */
+  --color-session-4: #ffa07a;  /* 橙色 */
+  --color-session-5: #98d8c8;  /* 绿色 */
+  --color-session-6: #f7dc6f;  /* 黄色 */
+  --color-session-7: #bb8fce;  /* 紫色 */
+  --color-session-8: #f1948a;  /* 粉色 */
+}
+
+/* 暗色模式颜色需要通过 CSS 变量在 .dark 类中定义 */
+.dark {
+  /* 背景颜色 */
+  --color-background: #121212;
+  --color-background-secondary: #1e1e1e;
+  
+  /* 文本颜色 */
+  --color-text: #ffffff;
+  --color-text-secondary: #b0b0b0;
+  
+  /* 边框颜色 */
+  --color-border: #333333;
+  
+  /* 强调色 */
+  --color-accent: #3b7dd8;
+  --color-accent-secondary: #60a5fa;
+  
+  /* 状态颜色 */
+  --color-success: #34d399;
+  --color-warning: #fbbf24;
+  --color-error: #f87171;
+  
+  /* 卡片颜色 - 暗色模式使用纯灰色背景 */
+  --color-card: #24272c;
+  
+  /* 标签颜色 */
+  --color-tag-background: #1e3a8a;
+  --color-tag-text: #93c5fd;
+  
+  /* 按钮颜色 */
+  --color-button-primary: #60a5fa;
+  --color-button-primary-text: #1e293b;
+  --color-button-secondary: #1e293b;
+  --color-button-secondary-text: #b0b0b0;
+  
+  /* 表单颜色 */
+  --color-form-background: #1e293b;
+  --color-form-border: #475569;
+  
+  /* 预约块颜色 - 暗色模式使用较暗的彩色背景（半透明，不会全黑也不会太亮） */
+  --color-session-1: #c05656cc;  /* 红色 */
+  --color-session-2: #3daaa3cc;  /* 青色 */
+  --color-session-3: #3799a8cc;  /* 蓝色 */
+  --color-session-4: #cc8061cc;  /* 橙色 */
+  --color-session-5: #7ab3a3cc;  /* 绿色 */
+  --color-session-6: #c4b55bcc;  /* 黄色 */
+  --color-session-7: #9673b9cc;  /* 紫色 */
+  --color-session-8: #c17570cc;  /* 粉色 */
+}
+
+/* 自定义颜色工具类 - 这些类使用 CSS 变量，会自动适应暗色模式 */
+.bg-background {
+  background-color: var(--color-background);
+}
+
+.bg-background-secondary {
+  background-color: var(--color-background-secondary);
+}
+
+.text-text {
+  color: var(--color-text);
+}
+
+.text-text-secondary {
+  color: var(--color-text-secondary);
+}
+
+.border-border {
+  border-color: var(--color-border);
+}
+
+.bg-accent {
+  background-color: var(--color-accent);
+}
+
+.text-accent {
+  color: var(--color-accent);
+}
+
+.bg-success {
+  background-color: var(--color-success);
+}
+
+.text-success {
+  color: var(--color-success);
+}
+
+.bg-warning {
+  background-color: var(--color-warning);
+}
+
+.text-warning {
+  color: var(--color-warning);
+}
+
+.bg-error {
+  background-color: var(--color-error);
+}
+
+.text-error {
+  color: var(--color-error);
+}
+
+.bg-card {
+  background-color: var(--color-card);
+}
+
+.bg-tag {
+  background-color: var(--color-tag-background);
+}
+
+.text-tag {
+  color: var(--color-tag-text);
+}
+
+.bg-button-primary {
+  background-color: var(--color-button-primary);
+}
+
+.text-button-primary {
+  color: var(--color-button-primary-text);
+}
+
+.bg-button-secondary {
+  background-color: var(--color-button-secondary);
+}
+
+.text-button-secondary {
+  color: var(--color-button-secondary-text);
+}
+
+.bg-form {
+  background-color: var(--color-form-background);
+}
+
+.border-form {
+  border-color: var(--color-form-border);
+}
+
+/* 预约块颜色类 - 亮色和暗色模式自动适配 */
+.bg-session-1 {
+  background-color: var(--color-session-1);
+}
+
+.bg-session-2 {
+  background-color: var(--color-session-2);
+}
+
+.bg-session-3 {
+  background-color: var(--color-session-3);
+}
+
+.bg-session-4 {
+  background-color: var(--color-session-4);
+}
+
+.bg-session-5 {
+  background-color: var(--color-session-5);
+}
+
+.bg-session-6 {
+  background-color: var(--color-session-6);
+}
+
+.bg-session-7 {
+  background-color: var(--color-session-7);
+}
+
+.bg-session-8 {
+  background-color: var(--color-session-8);
+}

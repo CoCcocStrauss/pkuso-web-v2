@@ -1,12 +1,14 @@
 import React from "react";
-import type { ProfileRow, AttendanceStatusType, RehearsalRow } from "@/lib/types";
+import type { ProfileRow, RehearsalRow } from "@/lib/types";
+import { AttendanceStatus, REHEARSAL_TYPE_LABEL, RehearsalType } from "@/lib/enums";
 import { instrumentGroupKey } from "@/lib/utils";
 import { INSTRUMENT_ORDER, OTHER_GROUP } from "@/lib/constants";
+import { formatRehearsalTimeRange } from "@/lib/utils";
 
 /**
  * 考勤管理模态框组件属性接口
  */
-interface AttendanceModalProps {
+interface AttendanceManageModalProps {
   /** 当前管理的排练记录 */
   rehearsal: RehearsalRow | null;
   /** 加载状态 */
@@ -14,9 +16,9 @@ interface AttendanceModalProps {
   /** 成员列表 */
   members: ProfileRow[];
   /** 用户考勤状态映射 */
-  statusByUserId: Record<string, AttendanceStatusType>;
+  statusByUserId: Record<string, AttendanceStatus>;
   /** 考勤状态变更回调 */
-  onStatusChange: (userId: string, status: AttendanceStatusType) => void;
+  onStatusChange: (userId: string, status: AttendanceStatus) => void;
   /** 保存状态 */
   saving: boolean;
   /** 保存回调 */
@@ -32,7 +34,7 @@ interface AttendanceModalProps {
  * @param props 组件属性
  * @returns 考勤管理模态框组件
  */
-export function AttendanceModal({
+export function AttendanceManageModal({
   rehearsal,
   loading,
   members,
@@ -41,7 +43,7 @@ export function AttendanceModal({
   saving,
   onSave,
   onClose,
-}: AttendanceModalProps) {
+}: AttendanceManageModalProps) {
   /**
    * 按乐器分组的成员列表
    * 成员按乐器分组并排序，便于管理员管理
@@ -86,17 +88,17 @@ export function AttendanceModal({
         className="absolute inset-0"
         onClick={onClose}
       />
-      <div className="relative w-full max-w-md rounded-2xl bg-white shadow-xl max-h-[85vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-zinc-200 p-4">
+      <div className="relative w-full max-w-md rounded-2xl bg-white shadow-xl max-h-[85vh] overflow-y-auto dark:bg-background">
+        <div className="sticky top-0 bg-white border-b border-border p-4 dark:bg-background dark:border-border">
           <div className="flex items-center justify-between">
-            <h2 id="attendance-modal-title" className="text-sm font-semibold text-zinc-900">
-              考勤管理 - {rehearsal.title || "未命名排练"}
+            <h2 id="attendance-modal-title" className="text-sm font-semibold text-text dark:text-text">
+              考勤管理 - {rehearsal ? `${REHEARSAL_TYPE_LABEL[rehearsal.type || RehearsalType.FULL]} - ${rehearsal.repertoire || ""} - ${formatRehearsalTimeRange(rehearsal.start_time, rehearsal.end_time)} @ ${rehearsal.location || ""}` : "未命名排练"}
             </h2>
             <button
               type="button"
               disabled={saving}
               onClick={onClose}
-              className="rounded-full bg-zinc-100 px-3 py-1 text-[11px] text-zinc-600 hover:bg-zinc-200 disabled:opacity-50"
+              className="rounded-full bg-background-secondary px-3 py-1 text-[11px] text-text-secondary hover:bg-background-secondary/80 disabled:opacity-50 dark:bg-background-secondary dark:text-text-secondary dark:hover:bg-background-secondary/80"
             >
               关闭
             </button>
@@ -107,37 +109,37 @@ export function AttendanceModal({
           {loading ? (
             <div className="animate-pulse space-y-3">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-12 bg-zinc-200 rounded"></div>
+                <div key={i} className="h-12 bg-background-secondary rounded dark:bg-background-secondary"></div>
               ))}
             </div>
           ) : (
             <div className="space-y-4">
               {groupedMembers.map(({ group, users }) => (
                 <div key={group}>
-                  <h3 className="text-xs font-medium text-zinc-700 mb-2">{group}</h3>
+                  <h3 className="text-xs font-medium text-text-secondary mb-2 dark:text-text-secondary">{group}</h3>
                   <div className="space-y-2">
                     {users.map((member) => (
                       <div key={member.id} className="flex items-center justify-between py-2">
-                        <span className="text-sm text-zinc-900">
+                        <span className="text-sm text-text dark:text-text">
                           {member.full_name || "未命名"}
                         </span>
                         <div className="flex gap-1">
-                          {(["present", "leave", "absent"] as const).map((status) => (
+                          {([AttendanceStatus.PRESENT, AttendanceStatus.LATE, AttendanceStatus.ABSENT] as const).map((status) => (
                             <button
                               key={status}
                               type="button"
                               onClick={() => onStatusChange(member.id, status)}
                               className={`px-2 py-1 text-xs rounded ${
                                 statusByUserId[member.id] === status
-                                  ? status === "present"
-                                    ? "bg-green-100 text-green-800"
-                                    : status === "leave"
-                                    ? "bg-yellow-100 text-yellow-800"
-                                    : "bg-red-100 text-red-800"
-                                  : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+                                  ? status === AttendanceStatus.PRESENT
+                                    ? "bg-success/20 text-success dark:bg-success/20 dark:text-success"
+                                    : status === AttendanceStatus.LATE
+                                    ? "bg-warning/20 text-warning dark:bg-warning/20 dark:text-warning"
+                                    : "bg-error/20 text-error dark:bg-error/20 dark:text-error"
+                                  : "bg-background-secondary text-text-secondary hover:bg-background-secondary/80 dark:bg-background-secondary dark:text-text-secondary dark:hover:bg-background-secondary/80"
                               }`}
                             >
-                              {status === "present" ? "✓" : status === "leave" ? "⏸️" : "✗"}
+                              {status === AttendanceStatus.PRESENT ? "✅" : status === AttendanceStatus.LATE ? "🟨" : "❌"}
                             </button>
                           ))}
                         </div>
@@ -149,12 +151,12 @@ export function AttendanceModal({
             </div>
           )}
 
-          <div className="mt-6 pt-4 border-t border-zinc-200">
+          <div className="mt-6 pt-4 border-t border-border dark:border-border">
             <button
               type="button"
               onClick={onSave}
               disabled={saving}
-              className="w-full rounded-full bg-zinc-900 py-3 text-sm font-medium text-white shadow-sm hover:bg-zinc-800 disabled:opacity-60"
+              className="w-full rounded-full bg-button-primary py-3 text-sm font-medium text-button-primary-text shadow-sm hover:bg-button-primary/90 disabled:opacity-60 dark:bg-button-primary dark:text-button-primary-text dark:hover:bg-button-primary/90"
             >
               {saving ? "保存中…" : "保存考勤"}
             </button>

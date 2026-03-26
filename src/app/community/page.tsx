@@ -4,100 +4,54 @@ import React from "react";
 import imageCompression from "browser-image-compression";
 import { useUser } from "@/context/UserContext";
 import { supabase } from "@/lib/supabase";
+import { hasSectionText, formatPostAuthorLabel, formatDateTime} from "@/lib/utils";
 import Toggle from "@/components/ui/Toggle";
 import Modal from "@/components/ui/Modal";
 import { PostRow } from "@/lib/types";
-
-type PostType = "ensemble" | "gathering";
+import { PostType, POST_TYPE_LABEL } from "@/lib/enums";
+import { usePosts } from "@/hooks/usePosts";
 
 type FormState = {
   title: string;
   content: string;
   type: PostType;
-  contactInfo: string;
-  currentSections: string;
-  missingSections: string;
-  imageFile: File | null;
+  contact_info: string;
+  current_sections: string;
+  missing_sections: string;
+  image_file: File | null;
 };
 
-function hasSectionText(s: string | null | undefined): boolean {
-  return s != null && typeof s === "string" && s.trim() !== "";
+interface CommunityPageProps {
+  onDelete:() => void;
 }
 
-function formatPostDate(createdAt: string | null | undefined): string {
-  if (!createdAt) return "";
-  const d = new Date(createdAt);
-  if (Number.isNaN(d.getTime())) return "";
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
 
-const TYPE_LABEL: Record<PostType, string> = {
-  ensemble: "重奏",
-  gathering: "团建",
-};
-
-export default function CommunityPage() {
+export default function CommunityPage( { onDelete }: CommunityPageProps) {
   const { user } = useUser();
-  const [view, setView] = React.useState<PostType>("ensemble");
-  const [posts, setPosts] = React.useState<PostRow[]>([]);
-  const [loading, setLoading] = React.useState(true);
+  const { posts, loading, fetchPosts, createPost, updatePost, deletePost } = usePosts();
+  const [view, setView] = React.useState<PostType>(PostType.ENSEMBLE);
   const [detailPost, setDetailPost] = React.useState<PostRow | null>(null);
   const [publishOpen, setPublishOpen] = React.useState(false);
   const [editId, setEditId] = React.useState<string | null>(null);
   const [form, setForm] = React.useState<FormState>({
     title: "",
     content: "",
-    type: "ensemble",
-    contactInfo: "",
-    currentSections: "",
-    missingSections: "",
-    imageFile: null,
+    type: PostType.ENSEMBLE,
+    contact_info: "",
+    current_sections: "",
+    missing_sections: "",
+    image_file: null,
   });
   const [submitting, setSubmitting] = React.useState(false);
   const [imagePreviewUrl, setImagePreviewUrl] = React.useState<string | null>(
     null,
   );
 
-  const fetchPosts = React.useCallback(async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("posts")
-      .select(
-        "id, title, type, content, image_url, author_id, created_at, contact_info, current_sections, missing_sections",
-      )
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      console.warn("[Community] 加载公告失败：", error.message);
-      setPosts([]);
-    } else {
-      // Supabase 嵌套 users 可能返回单对象或数组，统一取第一项以符合 PostRow
-      const raw = (data ?? []) as Array<
-        PostRow & { users?: PostRow["users"] | Array<{ name: string; section: string }> }
-      >;
-      const normalized: PostRow[] = raw.map((row) => {
-        const u = row.users;
-        const users =
-          Array.isArray(u) && u.length > 0
-            ? { name: u[0].name, section: u[0].section }
-            : u && !Array.isArray(u)
-              ? u
-              : null;
-        return { ...row, users };
-      });
-      setPosts(normalized);
-    }
-    setLoading(false);
-  }, []);
-
   React.useEffect(() => {
     void fetchPosts();
   }, [fetchPosts]);
 
-  const list = React.useMemo(
+  const postList = React.useMemo(
     () => posts.filter((p) => p.type === view),
     [posts, view],
   );
@@ -106,13 +60,13 @@ export default function CommunityPage() {
     if (initial) {
       setEditId(initial.id);
       setForm({
-        title: initial.title,
+        title: initial.title ?? "",
         content: initial.content ?? "",
         type: initial.type,
-        contactInfo: initial.contact_info ?? "",
-        currentSections: initial.current_sections ?? "",
-        missingSections: initial.missing_sections ?? "",
-        imageFile: null,
+        contact_info: initial.contact_info ?? "",
+        current_sections: initial.current_sections ?? "",
+        missing_sections: initial.missing_sections ?? "",
+        image_file: null,
       });
       setImagePreviewUrl(initial.image_url ?? null);
     } else {
@@ -120,11 +74,11 @@ export default function CommunityPage() {
       setForm({
         title: "",
         content: "",
-        type: "ensemble",
-        contactInfo: "",
-        currentSections: "",
-        missingSections: "",
-        imageFile: null,
+        type: PostType.ENSEMBLE,
+        contact_info: "",
+        current_sections: "",
+        missing_sections: "",
+        image_file: null,
       });
       setImagePreviewUrl(null);
     }
@@ -138,11 +92,11 @@ export default function CommunityPage() {
     setForm({
       title: "",
       content: "",
-      type: "ensemble",
-      contactInfo: "",
-      currentSections: "",
-      missingSections: "",
-      imageFile: null,
+      type: PostType.ENSEMBLE,
+      contact_info: "",
+      current_sections: "",
+      missing_sections: "",
+      image_file: null,
     });
     setImagePreviewUrl(null);
   };
@@ -150,34 +104,34 @@ export default function CommunityPage() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setForm((prev) => ({ ...prev, imageFile: file }));
+    setForm((prev) => ({ ...prev, image_file: file }));
     const url = URL.createObjectURL(file);
     setImagePreviewUrl(url);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (submitting) return;
     if (!form.title.trim()) {
       alert("请填写标题。");
       return;
     }
-    if (!form.contactInfo.trim()) {
+    if (!form.contact_info.trim()) {
       alert("请填写联系方式（微信号或手机号）。");
       return;
     }
 
     setSubmitting(true);
     let imageUrl: string | null = null;
-    if (form.imageFile) {
-      let fileToUpload: File = form.imageFile;
+    if (form.image_file) {
+      let fileToUpload: File = form.image_file;
       try {
         const options = {
           maxSizeMB: 0.3,
           maxWidthOrHeight: 1024,
           useWebWorker: true,
         };
-        fileToUpload = await imageCompression(form.imageFile, options);
+        fileToUpload = await imageCompression(form.image_file, options);
       } catch (err) {
         console.warn("[Community] 图片压缩失败，使用原图上传：", err);
       }
@@ -199,30 +153,18 @@ export default function CommunityPage() {
       imageUrl = imagePreviewUrl;
     }
 
-    const basePayload: Record<string, unknown> = {
-      title: form.title.trim(),
-      content: form.content.trim() || null,
-      type: form.type,
-      contact_info: form.contactInfo.trim(),
-    };
-    if (form.type === "ensemble") {
-      basePayload.current_sections = form.currentSections.trim() || null;
-      basePayload.missing_sections = form.missingSections.trim() || null;
-    } else {
-      basePayload.current_sections = null;
-      basePayload.missing_sections = null;
-    }
-    if (imageUrl !== null) basePayload.image_url = imageUrl;
-
     if (editId) {
-      const payload = { ...basePayload };
-      const { error } = await supabase
-        .from("posts")
-        .update(basePayload)
-        .eq("id", editId);
+      const success = await updatePost(editId, {
+        title: form.title.trim(),
+        content: form.content.trim() || null,
+        type: form.type,
+        contact_info: form.contact_info.trim(),
+        current_sections: form.type === "ensemble" ? form.current_sections.trim() || null : undefined,
+        missing_sections: form.type === "ensemble" ? form.missing_sections.trim() || null : undefined,
+        image_url: imageUrl ?? null,
+      });
       setSubmitting(false);
-      if (error) {
-        console.warn("[Community] 更新失败：", error.message);
+      if (!success) {
         alert("更新失败，请重试。");
         return;
       }
@@ -233,14 +175,18 @@ export default function CommunityPage() {
         setSubmitting(false);
         return;
       }
-      const { error } = await supabase.from("posts").insert({
-        ...basePayload,
-        image_url: imageUrl,
+      const success = await createPost({
         author_id: user.id,
+        title: form.title.trim(),
+        type: form.type,
+        content: form.content.trim() || null,
+        contact_info: form.contact_info.trim(),
+        current_sections: form.type === "ensemble" ? form.current_sections.trim() || null : undefined,
+        missing_sections: form.type === "ensemble" ? form.missing_sections.trim() || null : undefined,
+        image_url: imageUrl ?? null,
       });
       setSubmitting(false);
-      if (error) {
-        console.warn("[Community] 发布失败：", error.message);
+      if (!success) {
         alert("发布失败，请重试。");
         return;
       }
@@ -252,14 +198,14 @@ export default function CommunityPage() {
 
   const handleDelete = async (id: string) => {
     if (!window.confirm("确定要删除这条公告吗？")) return;
-    const { error } = await supabase.from("posts").delete().eq("id", id);
-    if (error) {
-      console.warn("[Community] 删除失败：", error.message);
+    const success = await deletePost(id);
+    if (!success) {
       alert("删除失败，请重试。");
       return;
     }
     setDetailPost(null);
-    alert("已删除。");
+    alert("已删除。");  
+    onDelete?.();
     void fetchPosts();
   };
 
@@ -268,35 +214,27 @@ export default function CommunityPage() {
     alert("请在新窗口中长按图片保存。");
   };
 
-  const authorLabel = (post: PostRow) => {
-    const u = post.users;
-    if (u?.name) return `${u.name}${u.section ? ` · ${u.section}` : ""}`;
-    return "未知";
-  };
-
   return (
     <div className="space-y-4">
       <header className="mb-1">
         <div className="flex items-center justify-between gap-2">
           <div>
-            <h1 className="text-lg font-semibold text-zinc-900">公告板</h1>
-            <p className="mt-1 text-xs text-zinc-500">重奏与团建信息</p>
+            <h1 className="text-lg font-semibold text-text dark:text-text">公告板</h1>
+            <p className="mt-1 text-xs text-text-secondary dark:text-text-secondary">重奏与团建信息</p>
           </div>
-          {user?.role === "member" && (
-            <button
-              type="button"
-              onClick={() => openPublish()}
-              className="rounded-full bg-zinc-900 px-3 py-1 text-[11px] font-medium text-white shadow-sm hover:bg-zinc-800"
-            >
-              发布公告
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => openPublish()}
+            className="rounded-full bg-button-primary px-3 py-1 text-[11px] font-medium text-button-primary-text shadow-sm hover:bg-button-primary/90 dark:bg-button-primary dark:text-button-primary-text dark:hover:bg-button-primary/90"
+          >
+            发布公告
+          </button>
         </div>
         <div className="mt-2">
           <Toggle
             options={[
-              { value: "ensemble", label: TYPE_LABEL.ensemble },
-              { value: "gathering", label: TYPE_LABEL.gathering },
+              { value: "ensemble", label: POST_TYPE_LABEL[PostType.ENSEMBLE] },
+              { value: "gathering", label: POST_TYPE_LABEL[PostType.GATHERING] },
             ]}
             value={view}
             onChange={(v) => setView(v as PostType)}
@@ -306,15 +244,15 @@ export default function CommunityPage() {
 
       <section className="space-y-3">
         {loading && posts.length === 0 && (
-          <p className="py-6 text-center text-xs text-zinc-400">
+          <p className="py-6 text-center text-xs text-text-secondary dark:text-text-secondary">
             正在加载…
           </p>
         )}
         {!loading &&
-          list.map((post) => (
+          postList.map((post) => (
             <article
               key={post.id}
-              className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-3 shadow-[0_1px_4px_rgba(15,23,42,0.06)]"
+              className="rounded-2xl border border-border bg-background/70 p-3 shadow-[0_1px_4px_rgba(15,23,42,0.06)] dark:border-border dark:bg-background/70"
             >
               <button
                 type="button"
@@ -323,30 +261,30 @@ export default function CommunityPage() {
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
-                    <h2 className="text-sm font-semibold text-zinc-900">
+                    <h2 className="text-sm font-semibold text-text dark:text-text">
                       {post.title}
                     </h2>
-                    <p className="mt-0.5 text-[11px] text-zinc-500">
-                      {TYPE_LABEL[post.type]}
-                      {formatPostDate(post.created_at) && ` · ${formatPostDate(post.created_at)}`}
+                    <p className="mt-0.5 text-[11px] text-text-secondary dark:text-text-secondary">
+                      {POST_TYPE_LABEL[post.type]}
+                      {formatDateTime(post.created_at, "yyyy-MM-dd HH:mm") && ` · ${formatDateTime(post.created_at, "yyyy-MM-dd HH:mm")}`}
                     </p>
                     {post.type === "ensemble" &&
                       hasSectionText(post.missing_sections) && (
                       <div className="mt-2 flex flex-wrap gap-1.5">
-                        <span className="inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-700">
+                        <span className="inline-flex rounded-full bg-tag px-2 py-0.5 text-[10px] font-bold text-tag dark:bg-tag dark:text-tag">
                           缺：{post.missing_sections!.trim()}
                         </span>
                       </div>
                     )}
                     {post.content != null && post.content.trim() !== "" && (
-                      <p className="mt-1 line-clamp-2 text-xs text-zinc-600">
+                      <p className="mt-1 line-clamp-2 text-xs text-text-secondary dark:text-text-secondary">
                         {post.content}
                       </p>
                     )}
                   </div>
                 </div>
               </button>
-              {(user?.id === post.author_id || user?.role === "admin") && (
+              { (user?.id === post.author_id || user?.role == "admin") && (
                 <div className="mt-2 flex gap-2 text-[11px]">
                   <button
                     type="button"
@@ -354,7 +292,7 @@ export default function CommunityPage() {
                       e.stopPropagation();
                       openPublish(post);
                     }}
-                    className="text-zinc-500 hover:text-zinc-800"
+                    className="text-text-secondary hover:text-text dark:text-text-secondary dark:hover:text-text"
                   >
                     编辑
                   </button>
@@ -364,7 +302,7 @@ export default function CommunityPage() {
                       e.stopPropagation();
                       void handleDelete(post.id);
                     }}
-                    className="text-zinc-400 hover:text-red-500"
+                    className="text-text-secondary hover:text-error dark:text-text-secondary dark:hover:text-error"
                   >
                     删除
                   </button>
@@ -372,9 +310,9 @@ export default function CommunityPage() {
               )}
             </article>
           ))}
-        {!loading && list.length === 0 && (
-          <p className="py-8 text-center text-xs text-zinc-500">
-            暂无「{TYPE_LABEL[view]}」公告。
+        {!loading && postList.length === 0 && (
+          <p className="py-8 text-center text-xs text-text-secondary dark:text-text-secondary">
+            暂无「{POST_TYPE_LABEL[view]}」公告。
           </p>
         )}
       </section>
@@ -412,8 +350,7 @@ function DetailModal({
   onClose: () => void;
   onSaveQr: (url: string) => void;
 }) {
-  const u = post.users;
-  const author = u?.name ? `${u.name}${u.section ? ` · ${u.section}` : ""}` : "未知";
+  const author = formatPostAuthorLabel(post);
   const showCurrent = post.type === "ensemble" && hasSectionText(post.current_sections);
   const showMissing = post.type === "ensemble" && hasSectionText(post.missing_sections);
 
@@ -432,37 +369,37 @@ function DetailModal({
       onClose={onClose}
       className="max-h-[85vh] overflow-hidden flex flex-col"
     >
-      <p className="text-[11px] text-zinc-500 flex-shrink-0">
-        {TYPE_LABEL[post.type]} · {author}
+      <p className="text-[11px] text-text-secondary dark:text-text-secondary flex-shrink-0">
+        {POST_TYPE_LABEL[post.type]} · {author}
       </p>
       {(showCurrent || showMissing) && (
         <div className="mt-2 flex flex-wrap gap-1.5 flex-shrink-0">
           {showCurrent && (
-            <span className="inline-flex rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-600">
+            <span className="inline-flex rounded-full bg-background-secondary px-2 py-0.5 text-[10px] font-medium text-text-secondary dark:bg-background-secondary dark:text-text-secondary">
               已有：{post.current_sections!.trim()}
             </span>
           )}
           {showMissing && (
-            <span className="inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-700">
+            <span className="inline-flex rounded-full bg-tag px-2 py-0.5 text-[10px] font-bold text-tag dark:bg-tag dark:text-tag">
               缺：{post.missing_sections!.trim()}
             </span>
           )}
         </div>
       )}
-      <div className="mt-2 overflow-y-auto flex-1 space-y-3 text-xs text-zinc-700">
+      <div className="mt-2 overflow-y-auto flex-1 space-y-3 text-xs text-text-secondary dark:text-text-secondary">
         {post.content != null && post.content.trim() !== "" && (
           <p className="whitespace-pre-line leading-relaxed">{post.content}</p>
         )}
         {post.contact_info && (
-          <div className="rounded-2xl bg-zinc-50 p-3 flex items-center justify-between gap-2">
+          <div className="rounded-2xl bg-background-secondary p-3 flex items-center justify-between gap-2 dark:bg-background-secondary">
             <div>
-              <p className="text-[11px] font-medium text-zinc-500">联系方式</p>
-              <p className="text-xs text-zinc-800">{post.contact_info}</p>
+              <p className="text-[11px] font-medium text-text-secondary dark:text-text-secondary">联系方式</p>
+              <p className="text-xs text-text dark:text-text">{post.contact_info}</p>
             </div>
             <button
               type="button"
               onClick={copyContact}
-              className="relative z-10 cursor-pointer rounded-full bg-zinc-900 px-3 py-1.5 text-[11px] font-medium text-white shrink-0"
+              className="relative z-10 cursor-pointer rounded-full bg-button-primary px-3 py-1.5 text-[11px] font-medium text-button-primary-text shrink-0 dark:bg-button-primary dark:text-button-primary-text"
             >
               一键复制
             </button>
@@ -473,12 +410,12 @@ function DetailModal({
             <img
               src={post.image_url}
               alt="二维码或配图"
-              className="rounded-2xl border border-zinc-200 max-w-full h-auto max-h-64 object-contain"
+              className="rounded-2xl border border-border max-w-full h-auto max-h-64 object-contain dark:border-border"
             />
             <button
               type="button"
               onClick={() => onSaveQr(post.image_url!)}
-              className="rounded-full bg-zinc-100 px-3 py-1.5 text-[11px] font-medium text-zinc-700 hover:bg-zinc-200"
+              className="rounded-full bg-background-secondary px-3 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-background-secondary/80 dark:bg-background-secondary dark:text-text-secondary dark:hover:bg-background-secondary/80"
             >
               保存二维码
             </button>
@@ -506,7 +443,7 @@ function PublishModal({
   submitting: boolean;
   editId: string | null;
   onClose: () => void;
-  onSubmit: (e: React.FormEvent) => void;
+  onSubmit: (e: React.SubmitEvent<HTMLFormElement>) => void;
 }) {
   return (
     <Modal
@@ -518,107 +455,107 @@ function PublishModal({
       <form onSubmit={onSubmit}>
         <div className="space-y-3 text-xs">
           <div className="space-y-1">
-            <label className="block text-[11px] font-medium text-zinc-600">
+            <label className="block text-[11px] font-medium text-text-secondary dark:text-text-secondary">
               类型
             </label>
-            <div className="inline-flex rounded-full bg-zinc-100 p-1 text-[11px]">
+            <div className="inline-flex rounded-full bg-background-secondary p-1 text-[11px] dark:bg-background-secondary">
               {(["ensemble", "gathering"] as PostType[]).map((t) => (
                 <button
                   key={t}
                   type="button"
                   onClick={() => setForm((f) => ({ ...f, type: t }))}
                   className={`min-w-[64px] rounded-full px-3 py-1 ${
-                    form.type === t ? "bg-zinc-900 text-white" : "text-zinc-600"
+                    form.type === t ? "bg-button-primary text-button-primary-text dark:bg-button-primary dark:text-button-primary-text" : "text-text-secondary dark:text-text-secondary"
                   }`}
                 >
-                  {TYPE_LABEL[t]}
+                  {POST_TYPE_LABEL[t]}
                 </button>
               ))}
             </div>
           </div>
           <div className="space-y-1">
-            <label className="block text-[11px] font-medium text-zinc-600">
-              联系方式 <span className="text-red-500">*</span>
+            <label className="block text-[11px] font-medium text-text-secondary dark:text-text-secondary">
+              联系方式 <span className="text-error dark:text-error">*</span>
             </label>
             <input
               type="text"
-              value={form.contactInfo}
-              onChange={(e) => setForm((f) => ({ ...f, contactInfo: e.target.value }))}
-              className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-900 outline-none focus:border-zinc-400"
+              value={form.contact_info}
+              onChange={(e) => setForm((f) => ({ ...f, contact_info: e.target.value }))}
+              className="w-full rounded-xl border border-border bg-form px-3 py-2 text-xs text-text outline-none focus:border-button-primary dark:border-border dark:bg-form dark:text-text"
               placeholder="微信号或手机号"
             />
           </div>
           <div className="space-y-1">
-            <label className="block text-[11px] font-medium text-zinc-600">
+            <label className="block text-[11px] font-medium text-text-secondary dark:text-text-secondary">
               标题
             </label>
             <input
               type="text"
               value={form.title}
               onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-              className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-900 outline-none focus:border-zinc-400"
+              className="w-full rounded-xl border border-border bg-form px-3 py-2 text-xs text-text outline-none focus:border-button-primary dark:border-border dark:bg-form dark:text-text"
               placeholder="请输入标题"
             />
           </div>
           {form.type === "ensemble" && (
             <>
               <div className="space-y-1">
-                <label className="block text-[11px] font-medium text-zinc-600">
+                <label className="block text-[11px] font-medium text-text-secondary dark:text-text-secondary">
                   已有声部
                 </label>
                 <input
                   type="text"
-                  value={form.currentSections}
+                  value={form.current_sections}
                   onChange={(e) =>
-                    setForm((f) => ({ ...f, currentSections: e.target.value }))
+                    setForm((f) => ({ ...f, current_sections: e.target.value }))
                   }
-                  className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-900 outline-none focus:border-zinc-400"
+                  className="w-full rounded-xl border border-border bg-form px-3 py-2 text-xs text-text outline-none focus:border-button-primary dark:border-border dark:bg-form dark:text-text"
                   placeholder="如：长笛、单簧管"
                 />
               </div>
               <div className="space-y-1">
-                <label className="block text-[11px] font-medium text-zinc-600">
+                <label className="block text-[11px] font-medium text-text-secondary dark:text-text-secondary">
                   需要声部
                 </label>
                 <input
                   type="text"
-                  value={form.missingSections}
+                  value={form.missing_sections}
                   onChange={(e) =>
-                    setForm((f) => ({ ...f, missingSections: e.target.value }))
+                    setForm((f) => ({ ...f, missing_sections: e.target.value }))
                   }
-                  className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-900 outline-none focus:border-zinc-400"
+                  className="w-full rounded-xl border border-border bg-form px-3 py-2 text-xs text-text outline-none focus:border-button-primary dark:border-border dark:bg-form dark:text-text"
                   placeholder="如：双簧管、大管"
                 />
               </div>
             </>
           )}
           <div className="space-y-1">
-            <label className="block text-[11px] font-medium text-zinc-600">
+            <label className="block text-[11px] font-medium text-text-secondary dark:text-text-secondary">
               内容
             </label>
             <textarea
               value={form.content ?? ""}
               onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
-              className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-900 outline-none focus:border-zinc-400"
+              className="w-full rounded-xl border border-border bg-form px-3 py-2 text-xs text-text outline-none focus:border-button-primary dark:border-border dark:bg-form dark:text-text"
               rows={4}
               placeholder="请输入内容"
             />
           </div>
           <div className="space-y-1">
-            <label className="block text-[11px] font-medium text-zinc-600">
+            <label className="block text-[11px] font-medium text-text-secondary dark:text-text-secondary">
               图片（如微信二维码）
             </label>
             <input
               type="file"
               accept="image/*"
               onChange={onImageChange}
-              className="w-full text-[11px] text-zinc-600 file:mr-2 file:rounded-full file:border-0 file:bg-zinc-100 file:px-3 file:py-1 file:text-xs"
+              className="w-full text-[11px] text-text-secondary file:mr-2 file:rounded-full file:border-0 file:bg-background-secondary file:px-3 file:py-1 file:text-xs dark:text-text-secondary dark:file:bg-background-secondary dark:file:text-text-secondary"
             />
             {imagePreviewUrl && (
               <img
                 src={imagePreviewUrl}
                 alt="预览"
-                className="mt-2 rounded-2xl border border-zinc-200 max-w-full h-auto max-h-32 object-contain"
+                className="mt-2 rounded-2xl border border-border max-w-full h-auto max-h-32 object-contain dark:border-border"
               />
             )}
           </div>
@@ -628,14 +565,14 @@ function PublishModal({
             type="button"
             onClick={onClose}
             disabled={submitting}
-            className="rounded-full px-4 py-1.5 text-[11px] text-zinc-500"
+            className="rounded-full px-4 py-1.5 text-[11px] text-text-secondary dark:text-text-secondary"
           >
             取消
           </button>
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-full bg-zinc-900 px-4 py-1.5 text-[11px] font-medium text-white disabled:opacity-60"
+            className="rounded-full bg-button-primary px-4 py-1.5 text-[11px] font-medium text-button-primary-text disabled:opacity-60 dark:bg-button-primary dark:text-button-primary-text"
           >
             {submitting ? "提交中…" : editId ? "保存" : "发布"}
           </button>
